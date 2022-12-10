@@ -5,20 +5,32 @@ const fs = require('fs');
 const path = require('path');
 const minify = require('@node-minify/core');
 const uglifyjs = require('@node-minify/uglify-js');
+const noCompress = require('@node-minify/no-compress');
 
 const outputDir = './output'
 
 if (!fs.existsSync(outputDir))
     fs.mkdirSync(outputDir);
 
+var tokens = {};
+
+function replaceTokens(data) {
+    Object.keys(tokens).forEach(function(name) {
+        data = data.replaceAll(`{{${name}}}`, tokens[name]);
+    });
+    return data;
+}
+
+tokens['VERSION'] = packageJson.version;
+
 var data = fs.readFileSync('./assist.template.js', 'utf8');
-data = data.replace('{{VERSION}}', packageJson.version);
+data = replaceTokens(data);
 fs.writeFileSync(path.join(outputDir, 'assist.js'), data);
 
 var bookmarklet = null;
 
 minify({
-    compressor: uglifyjs,
+    compressor: noCompress,
     input: [
         './jquery-3.6.1.js',
         path.join(outputDir, 'assist.js'),
@@ -34,6 +46,8 @@ minify({
     }
 });
 
+tokens['BOOKMARKLET_URL'] = bookmarklet;
+
 var data = fs.readFileSync('./install.template.html', 'utf8');
-data = data.replace('{{BOOKMARKLET_URL}}', bookmarklet);
+data = replaceTokens(data);
 fs.writeFileSync(path.join(outputDir, 'install.html'), data);

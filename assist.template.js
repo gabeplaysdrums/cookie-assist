@@ -23,6 +23,10 @@
         return;
     }
 
+    function exists($selector) {
+        return $selector && $selector.length > 0;
+    }
+
     var $assist = $('<div>')
         .attr('id', 'cookie-assist')
         .css('display', 'inline-block')
@@ -31,37 +35,60 @@
         .css('color', '#fff')
         .append($(`<b>Cookie Assistant v${version}:</b> `));
 
-    (function(){
-        var interval = null;
+    var flags = {};
+    
+    var interval = window.setInterval(function() {
 
+        log.debug('computing action');
+
+        if (flags.goldenCookie)
+        {
+            var $shimmer = $('.shimmer').first();
+
+            if (exists($shimmer))
+            {
+                log.info('clicking golden cookie');
+                $shimmer.click();
+                return;
+            }
+        }
+
+        if (flags.bigCookie) {
+            log.debug('clicking big cookie');
+            $('#bigCookie').click();
+            return;
+        }
+
+    }, 100);
+
+    function addFlagToMenu(name, label) {
         $assist.append(
-            $('<input type="checkbox" id="cookie-assist-click-cookie">')
+            $(`<input type="checkbox" id="cookie-assist-flag-${name}">`)
                 .css('margin-left', '10px')
                 .change(function() {
-                    if ($(this).is(":checked")) {
-                        interval = window.setInterval(function(){
-                            $('#bigCookie').click();
-                        }, 100);
-                    }
-                    else
-                    {
-                        window.clearInterval(interval);
-                    }
+                    flags[name] = $(this).is(":checked");
+                    log.info(`flag ${name} ${flags[name] ? 'enabled' : 'disabled'}`);
                 })
         );
     
         $assist.append(
-            $('<label for="cookie-assist-click-cookie">click big cookie</label>')
+            $(`<label for="cookie-assist-flag-${name}">${label}</label>`)
         );
-    })();
+    }
+
+    addFlagToMenu('bigCookie', 'click big cookie');
+    addFlagToMenu('goldenCookie', 'click golden cookies');
 
     $('#topBar').children().css('display', 'none');
     $("#topBar").append($assist);
 
     log.info(`Loaded version ${version}`);
 
+    // exports
+    window.CookieAssist = window.CookieAssist || {};
     $.extend(window.CookieAssist, {
-        version: version
+        version: version,
+        flags: flags,
     });
 
 })(jQuery);
