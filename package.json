@@ -1,0 +1,23 @@
+{
+  "name": "cookie-assist",
+  "version": "0.0.1",
+  "description": "",
+  "main": "main.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gabeplaysdrums/cookie-assist.git"
+  },
+  "author": "Gabriel Young",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/gabeplaysdrums/cookie-assist/issues"
+  },
+  "homepage": "https://github.com/gabeplaysdrums/cookie-assist#readme",
+  "dependencies": {
+    "@node-minify/core": "^7.1.0",
+    "@node-minify/uglify-js": "^7.1.0"
+  }
+}
