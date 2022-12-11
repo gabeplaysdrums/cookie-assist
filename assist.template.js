@@ -34,7 +34,6 @@
         {
             var numberStr = m[1].replaceAll(',', '');
             var wordStr = m[5];
-            var multiplier = 1;
 
             var number = parseFloat(numberStr);
 
@@ -101,7 +100,7 @@
     var lastRecommended = null;
 
     function clearRecommendation() {
-        $('.product,.upgrade').css('border', '0px');
+        $('.product,.upgrade').find('.cookie-assist-recommend').remove();
     }
 
     function updateRecommendation(show) {
@@ -132,8 +131,19 @@
         }
 
         function logProduct(product, logFn) {
+            if (!product) {
+                logFn('  (nothing)');
+                return;
+            }
+            
             var productCopy = Object.assign({}, product);
             delete productCopy['elem'];
+
+            if (product.building) {
+                productCopy.building = Object.assign({}, product.building);
+                delete productCopy.building['elem'];
+            }
+
             logFn(`  ${JSON.stringify(productCopy)}`);
         }
 
@@ -170,13 +180,13 @@
                 var text = $(this).text();
                 var m = null;
 
-                if ((m = text.match(/each .* produces (.*) cookies per second/)) != null)
+                if ((m = text.match(/each .* produces (.*) cookies? per second/)) != null)
                 {
                     product.cpsEach = parseShortNumber(m[1]);
                     return;
                 }
 
-                if ((m = text.match(/producing (.*) cookies per second \((\d+(\.\d*)?)% of total CpS\)/)) != null)
+                if ((m = text.match(/producing (.*) cookies? per second \((\d+(\.\d*)?)% of total CpS\)/)) != null)
                 {
                     product.cpsTotal = parseShortNumber(m[1]);
                     product.cpsPct = parseFloat(m[2]) / 100.0;
@@ -223,7 +233,15 @@
                     var pluralBuilding = m[1].toLowerCase();
                     var multiplierText = m[3];
 
-                    var building = pluralBuildings[pluralBuilding];
+                    var building = (function() {
+                        for (var name in pluralBuildings) {
+                            if (pluralBuilding.indexOf(name) < 0)
+                                continue;
+                            return pluralBuildings[name];
+                        }
+
+                        return null;
+                    })();
 
                     if (building) {
                         product.building = building;
@@ -269,12 +287,26 @@
         }
 
         // recommend an unknown product if it is cheaper
-        if (unknownProducts.length > 0 && unknownProducts[0].price < recommended.price) {
+        if (unknownProducts.length > 0 && 
+            (recommended == null || unknownProducts[0].price < recommended.price)) {
             recommended = unknownProducts[0];
         }
 
         if (recommended && show)
-            $(recommended.elem).css('border', '5px solid red');
+            $(recommended.elem).append(
+                $('<div>')
+                    .addClass('cookie-assist-recommend')
+                    .css('display', 'inline-block')
+                    .css('width', '13px')
+                    .css('height', '13px')
+                    .css('position', 'relative')
+                    .css('top', '0')
+                    .css('left', '0')
+                    .css('background-color', 'rgb(117, 171, 52)')
+                    .css('border-radius', '7px')
+                    .css('box-shadow', '0 0 20px 10px rgb(117, 171, 52)')
+                    .css('border', '1px solid rgba(0, 0, 0, 0.8)')
+            );
 
         if (recommended != lastRecommended && 
             (recommended == null || lastRecommended == null || recommended.name != lastRecommended.name))
