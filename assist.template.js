@@ -86,6 +86,8 @@
         .css('color', '#fff')
         .append($(`<b>Cookie Assistant v${version}:</b> `));
 
+    var lastRecommended = null;
+
     function clearRecommendation() {
         $('.product,.upgrade').css('border', '0px');
     }
@@ -97,10 +99,33 @@
         var $tooltipParent = $tooltip.parent();
         $tooltip.remove();
 
-        var products = [];
+        var knownProducts = [];
+        var unknownProducts = [];
+        var ignoredProducts = [];
+
+        function addProduct(product) {
+            // avoid buildings that have a warning
+            if (product.warning) {
+                ignoredProducts.push(product);
+                return;
+            }
+
+            if (product.cpsEach && product.price) {
+                product.cpsEachPerPrice = product.cpsEach / product.price;
+                knownProducts.push(product);
+                return;
+            }
+
+            unknownProducts.push(product);
+        }
+
+        function logProduct(product, logFn) {
+            var productCopy = Object.assign({}, product);
+            delete productCopy['elem'];
+            logFn(`  ${JSON.stringify(productCopy)}`);
+        }
 
         // find all buildings
-        log.debug('bulidings:');
         $('.product.unlocked').each(function () {
 
             var product = {
@@ -135,37 +160,25 @@
             $(this).mouseout();
             $tooltip.mouseout();
 
-            if (product.cpsEach && product.price) {
-                product.cpsEachPerPrice = product.cpsEach / product.price;
-            }
-            else {
-                product.cpsEachPerPrice = -1;
-            }
-            
-            // avoid buildings that have a warning
-            if (!product.warning)
-                products.push(product);
+            addProduct(product);
         });
 
         // find upgrades
-        $('.upgrade.enabled').each(function() {
+        $('.upgrade').each(function() {
             $(this).mouseover();
 
             var product = {
                 elem: this,
                 name: $tooltip.find('.name').text(),
                 price: parseShortNumber($tooltip.find('.price').text()),
-                cpsEachPerPrice: -1,
-                enabled: true,
+                enabled: $(this).hasClass('enabled'),
                 warning: exists($tooltip.find('.warning')),
             };
 
-            // avoid upgrades that have a warning
-            if (!product.warning)
-                products.push(product);
-
             $(this).mouseout();
             $tooltip.mouseout();
+
+            addProduct(product);
         });
 
         $tooltipParent.append($tooltip);
@@ -175,39 +188,42 @@
             $originalTooltipSubject.mouseover();
         }
 
-        products.sort((a, b) => { return b.cpsEachPerPrice - a.cpsEachPerPrice; });
+        knownProducts.sort((a, b) => { return b.cpsEachPerPrice - a.cpsEachPerPrice; });
+        unknownProducts.sort((a, b) => { return a.price - b.price; });
+        ignoredProducts.sort((a, b) => { return a.price - b.price; });
 
-        products.forEach((product) => {
-            var productCopy = Object.assign({}, product);
-            delete productCopy['elem'];
-            log.debug(JSON.stringify(productCopy));
-        });
+        log.debug('known products:');
+        knownProducts.forEach((product) => { logProduct(product, log.debug); });
+        log.debug('unknown products:');
+        unknownProducts.forEach((product) => { logProduct(product, log.debug); });
+        log.debug('ignored products:');
+        ignoredProducts.forEach((product) => { logProduct(product, log.debug); });
 
         clearRecommendation();
 
         var recommended = null;
 
-        if (products.length > 0) {
-            recommended = products[0];
-
-            if (!recommended.enabled) {
-                // if there are not enough cookies to purchase, opportunistically recommend a product with unknown CpS
-
-                // prefer less expensive products
-                products.sort((a, b) => { return a.price - b.price; });
-
-                for (var i=0; i < products.length; i++) {
-                    if (!products[i].cpsEach && products[i].enabled) {
-                        recommended = products[i];
-                        break;
-                    }
-                }
-            }
+        // recommend the product with the highest CpS per price
+        if (knownProducts.length > 0) {
+            recommended = knownProducts[0];
         }
 
-        if (show && recommended)
+        // recommend an unknown product if it is cheaper
+        if (unknownProducts.length > 0 && unknownProducts[0].price < recommended.price) {
+            recommended = unknownProducts[0];
+        }
+
+        if (recommended && show)
             $(recommended.elem).css('border', '5px solid red');
 
+        if (recommended != lastRecommended && 
+            (recommended == null || lastRecommended == null || recommended.name != lastRecommended.name))
+        {
+            log.info('now recommending:');
+            logProduct(recommended, log.info);
+        }
+
+        lastRecommended = recommended;
         return recommended;
     }
 
