@@ -86,7 +86,7 @@
         .css('color', '#fff')
         .append($(`<b>Cookie Assistant v${version}:</b> `));
 
-    function updateRecommendation() {
+    function updateRecommendation(show) {
         var $originalTooltipSubject = $tooltipSubject;
 
         var $tooltip = $('#tooltip');
@@ -128,7 +128,13 @@
             $(this).mouseout();
             $tooltip.mouseout();
 
-            product.cpsEachPerPrice = product.cpsEach / product.price;
+            if (product.cpsEach && product.price) {
+                product.cpsEachPerPrice = product.cpsEach / product.price;
+            }
+            else {
+                product.cpsEachPerPrice = -1;
+            }
+            
             products.push(product);
         });
 
@@ -149,10 +155,30 @@
 
         $('.product').css('border', '');
 
-        if (products.length > 0)
-        {
-            $(products[0].elem).css('border', '5px solid red');
+        var recommended = null;
+
+        if (products.length > 0) {
+            recommended = products[0];
+
+            if (!recommended.enabled) {
+                // if there are not enough cookies to purchase, opportunistically recommend a product with unknown CpS
+
+                // prefer less expensive products
+                products.sort((a, b) => { return a.price - b.price; });
+
+                for (var i=0; i < products.length; i++) {
+                    if (!products[i].cpsEach && products[i].enabled) {
+                        recommended = products[i];
+                        break;
+                    }
+                }
+            }
         }
+
+        if (show && recommended)
+            $(recommended.elem).css('border', '5px solid red');
+
+        return recommended;
     }
 
     function clearRecommendation() {
@@ -162,8 +188,8 @@
     var flags = {};
 
     $('.product,.upgrade').click(function() {
-        if (flags.recommend) {
-            updateRecommendation();
+        if (flags.recommend || flags.purchase) {
+            updateRecommendation(flags.recommend);
         }
         else {
             clearRecommendation();
@@ -189,10 +215,18 @@
             }
         }
 
-        if (flags.recommend && iterCount % 20 == 0) {
-            updateRecommendation();
+        if (flags.recommend || flags.purchase) {
+            if (iterCount % 20 == 0) {
+                var product = updateRecommendation(flags.recommend);
+
+                if (flags.purchase && product && product.enabled) {
+                    log.info(`purchasing ${product.name} @ ${product.cpsEachPerPrice} CpS per price`);
+                    $(product.elem).click();
+                    return;
+                }
+            }
         }
-        else if (!flags.recommend) {
+        else {
             clearRecommendation();
         }
 
@@ -222,6 +256,7 @@
     addFlagToMenu('bigCookie', 'click big cookie');
     addFlagToMenu('goldenCookie', 'click golden cookies');
     addFlagToMenu('recommend', 'show recommendations');
+    addFlagToMenu('purchase', 'purchase recommendations');
 
     $('#topBar').children().css('display', 'none');
     $("#topBar").append($assist);
