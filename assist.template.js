@@ -86,6 +86,10 @@
         .css('color', '#fff')
         .append($(`<b>Cookie Assistant v${version}:</b> `));
 
+    function clearRecommendation() {
+        $('.product,.upgrade').css('border', '0px');
+    }
+
     function updateRecommendation(show) {
         var $originalTooltipSubject = $tooltipSubject;
 
@@ -108,6 +112,9 @@
             };
 
             $(this).mouseover();
+
+            product.warning = exists($tooltip.find('.warning'));
+
             $tooltip.find('.descriptionBlock').each(function() {
                 var text = $(this).text();
                 var m = null;
@@ -135,7 +142,30 @@
                 product.cpsEachPerPrice = -1;
             }
             
-            products.push(product);
+            // avoid buildings that have a warning
+            if (!product.warning)
+                products.push(product);
+        });
+
+        // find upgrades
+        $('.upgrade.enabled').each(function() {
+            $(this).mouseover();
+
+            var product = {
+                elem: this,
+                name: $tooltip.find('.name').text(),
+                price: parseShortNumber($tooltip.find('.price').text()),
+                cpsEachPerPrice: -1,
+                enabled: true,
+                warning: exists($tooltip.find('.warning')),
+            };
+
+            // avoid upgrades that have a warning
+            if (!product.warning)
+                products.push(product);
+
+            $(this).mouseout();
+            $tooltip.mouseout();
         });
 
         $tooltipParent.append($tooltip);
@@ -153,7 +183,7 @@
             log.debug(JSON.stringify(productCopy));
         });
 
-        $('.product').css('border', '');
+        clearRecommendation();
 
         var recommended = null;
 
@@ -179,10 +209,6 @@
             $(recommended.elem).css('border', '5px solid red');
 
         return recommended;
-    }
-
-    function clearRecommendation() {
-        $('.product').css('border', '');
     }
 
     var flags = {};
