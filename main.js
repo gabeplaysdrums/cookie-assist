@@ -34,6 +34,7 @@ function makeInstaller(outputHtml, versionSuffix, compressor) {
         compressor: compressor,
         input: [
             './jquery-3.6.1.js',
+            './node_modules/pluralize/pluralize.js',
             path.join(outputDir, 'assist.js'),
         ],
         output: path.join(outputDir, 'assist.min.js'),

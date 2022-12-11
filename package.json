@@ -18,6 +18,8 @@
   "homepage": "https://github.com/gabeplaysdrums/cookie-assist#readme",
   "dependencies": {
     "@node-minify/core": "^7.1.0",
-    "@node-minify/uglify-js": "^7.1.0"
+    "@node-minify/no-compress": "^7.1.0",
+    "@node-minify/uglify-js": "^7.1.0",
+    "pluralize": "^8.0.0"
   }
 }

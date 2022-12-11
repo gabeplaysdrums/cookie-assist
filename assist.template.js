@@ -72,6 +72,18 @@
         return -1;
     }
 
+    function parseMultiplierText(str) {
+        var m = null;
+
+        if ((m = str.match(/twice/)) != null)
+            return 2;
+
+        if ((m = str.match(/(\d+) times/)) != null)
+            return parseInt(m[1]);
+
+        return 1;
+    }
+
     var $tooltipSubject = null;
 
     $('.product,.upgrade')
@@ -125,6 +137,19 @@
             logFn(`  ${JSON.stringify(productCopy)}`);
         }
 
+        // get production CpS
+        var cpsProd = (function() {
+            var text = $('#cookiesPerSecond').text();
+            var m = null;
+
+            if ((m = text.match(/per second: (.*)/)) != null)
+            {
+                return parseShortNumber(m[1]);
+            }
+        })();
+
+        var pluralBuildings = {};
+
         // find all buildings
         $('.product.unlocked').each(function () {
 
@@ -134,6 +159,7 @@
                 price: parseShortNumber($(this).find('.price').first().text()),
                 owned: parseInt($(this).find('.owned').first().text()),
                 enabled: $(this).hasClass('enabled'),
+                type: 'Building',
             };
 
             $(this).mouseover();
@@ -160,6 +186,9 @@
             $(this).mouseout();
             $tooltip.mouseout();
 
+            var pluralized = pluralize(product.name.toLowerCase());
+            pluralBuildings[pluralized] = product;
+
             addProduct(product);
         });
 
@@ -173,7 +202,38 @@
                 price: parseShortNumber($tooltip.find('.price').text()),
                 enabled: $(this).hasClass('enabled'),
                 warning: exists($tooltip.find('.warning')),
+                type: $tooltip.find('.tag').first().text(),
             };
+
+            $tooltip.find('.description').each(function() {
+                var text = $(this).text();
+                var m = null;
+
+                if (product.type == 'Cookie' && 
+                    (m = text.match(/Cookie production multiplier \+(\d+(\.\d+)?)%\./)) != null)
+                {
+                    product.addedProdMult = parseFloat(m[1]) / 100;
+                    product.cpsEach = cpsProd * product.addedProdMult;
+                    return;
+                }
+
+                if (product.type == 'Upgrade' &&
+                    (m = text.match(/(\w+( \w+)*) are (.*) as efficient\./)) != null)
+                {
+                    var pluralBuilding = m[1].toLowerCase();
+                    var multiplierText = m[3];
+
+                    var building = pluralBuildings[pluralBuilding];
+
+                    if (building) {
+                        product.building = building;
+                        product.buildingMult = parseMultiplierText(multiplierText);
+                        product.cpsEach = (product.buildingMult - 1) * building.cpsTotal;
+                    }
+
+                    return;
+                }
+            });
 
             $(this).mouseout();
             $tooltip.mouseout();
