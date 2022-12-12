@@ -97,10 +97,14 @@
         .css('color', '#fff')
         .append($(`<b>Cookie Assistant v${version}:</b> `));
 
+    var $eta = $('<span>')
+        .css('margin-left', '10px');
+
     var lastRecommended = null;
 
     function clearRecommendation() {
         $('.product,.upgrade').find('.cookie-assist-recommend').remove();
+        $eta.empty();
     }
 
     function updateRecommendation(show) {
@@ -338,7 +342,7 @@
             recommended = unknownProducts[0];
         }
 
-        if (recommended && show)
+        if (recommended && show) {
             $(recommended.elem).append(
                 $('<div>')
                     .addClass('cookie-assist-recommend')
@@ -353,6 +357,83 @@
                     .css('box-shadow', '0 0 20px 10px rgb(117, 171, 52)')
                     .css('border', '1px solid rgba(0, 0, 0, 0.8)')
             );
+
+            var currentCookies = parseShortNumber(
+                $('#cookies')
+                    .contents()
+                    .filter(function() {
+                        return this.nodeType === 3; //Node.TEXT_NODE
+                    })
+                    .text()
+            );
+
+            var remainingCookies = recommended.price - currentCookies;
+
+            if (remainingCookies > 0) {
+
+                var now = new Date();
+                var eta = new Date(now.getTime());
+                eta.setSeconds(eta.getSeconds() + remainingCookies / cpsProd);
+
+                var timeStr = '';
+                var timeSuffix = 'AM';
+
+                if (eta.getHours() == 0)
+                    timeStr += '12';
+                else if (eta.getHours() == 12) {
+                    timeStr += '12';
+                    timeSuffix = 'PM';
+                }
+                else if (eta.getHours() > 12) {
+                    timeStr += (eta.getHours() - 12);
+                    timeSuffix = 'PM';
+                }
+                else
+                    timeStr += eta.getHours();
+
+                function digit2(x) {
+                    return (x < 10) ? '0' + x : '' + x;
+                }
+                
+                timeStr += `:${digit2(eta.getMinutes())} ${timeSuffix}`;
+
+                var dateStr = '';
+                
+                var monthStr = ([
+                    'Jan',
+                    'Feb',
+                    'Mar',
+                    'Apr',
+                    'May',
+                    'Jun',
+                    'Jul',
+                    'Aug',
+                    'Sep',
+                    'Nov',
+                    'Dec',
+                ])[eta.getMonth()];
+                
+                if (eta.getFullYear() != now.getFullYear()) {
+                    // full date including year
+                    dateStr = ` on ${monthStr} ${eta.getDate()} ${eta.getFullYear()}`;
+                }
+                else if (eta.getMonth() != now.getMonth()) {
+                    // date excluding year
+                    dateStr = ` on ${monthStr} ${eta.getDate()}`;
+                }
+                else if (eta.getDate() != now.getDate()) {
+                    if (eta.getDate() == now.getDate() + 1) {
+                        dateStr = ' tomorrow';
+                    }
+                    else {
+                        // date excluding year
+                        dateStr = ` on ${monthStr} ${eta.getDate()}`;
+                    }
+                }
+
+                $eta.text(`[ETA: ${timeStr}${dateStr}]`);
+            }
+        }
 
         if (recommended != lastRecommended && 
             (recommended == null || lastRecommended == null || recommended.name != lastRecommended.name))
@@ -376,6 +457,7 @@
         }
     });
 
+    // compute mouse clicks per second
     var averageMouseClicksPerSecond = 0.0;
 
     (function() {
@@ -466,6 +548,8 @@
     addFlagToMenu('goldenCookie', 'click golden cookies');
     addFlagToMenu('recommend', 'show recommendations');
     addFlagToMenu('purchase', 'purchase recommendations');
+
+    $assist.append($eta);
 
     $('#topBar').children().css('display', 'none');
     $("#topBar").append($assist);
