@@ -19,6 +19,9 @@ var buildInfo = [];
     var revision = execSync('git rev-parse --short HEAD').toString().trim();
     buildInfo.push(`rev.${revision}`)
 
+    var scriptHash = execSync('git hash-object -t blob ./assist.template.js').toString().trim();
+    buildInfo.push(`scriptHash.${scriptHash}`)
+
     function addCommandOutputHash(label, command) {
         var commandOutput = execSync(command);
         if (commandOutput && commandOutput.toString() && commandOutput.toString().trim().length > 0) {
