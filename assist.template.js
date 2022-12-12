@@ -251,6 +251,14 @@
 
                     return;
                 }
+
+                if (product.type == 'Upgrade' && 
+                    (m = text.match(/Clicking gains \+(\d+(\.\d+)?)% of your CpS/)) != null)
+                {
+                    product.addedProdMult = parseFloat(m[1]) / 100;
+                    product.cpsEach = cpsProd * product.addedProdMult * averageMouseClicksPerSecond;
+                    return;
+                }
             });
 
             $(this).mouseout();
@@ -329,6 +337,35 @@
             clearRecommendation();
         }
     });
+
+    var averageMouseClicksPerSecond = 0.0;
+
+    (function() {
+        var clickCount = 0;
+        var lastClickTime = 0;
+
+        $('#bigCookie').click(function() {
+
+            var clickTime = window.performance.now();
+            clickCount++;
+
+            if (clickCount > 1) {
+                var intervalMs = (clickTime - lastClickTime);
+                var ratePerSecond = 1000.0 / intervalMs;
+
+                if (clickCount == 2) {
+                    averageMouseClicksPerSecond = ratePerSecond;
+                }
+                else {
+                    averageMouseClicksPerSecond += (ratePerSecond - averageMouseClicksPerSecond) / (clickCount - 1);
+                }
+            }
+
+            lastClickTime = clickTime;
+
+            log.debug(`average clicks per second: ${averageMouseClicksPerSecond}`);
+        });
+    })();
 
     var iterCount = 0;
     
