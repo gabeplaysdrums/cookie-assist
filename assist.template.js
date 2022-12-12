@@ -26,6 +26,9 @@
         return;
     }
 
+    // remove ads
+    $('.supportComment').parent().empty();
+
     function exists($selector) {
         return $selector && $selector.length > 0;
     }
