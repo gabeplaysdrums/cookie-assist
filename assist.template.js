@@ -100,7 +100,7 @@
     var $eta = $('<span>')
         .css('margin-left', '10px');
 
-    var lastRecommended = null;
+    var lastRecommended = [];
     var cpsProd = (function() {
         var count = 0;
         var samples = new Array(5000);
@@ -347,34 +347,46 @@
 
         clearRecommendation();
 
-        var recommended = null;
+        // recommend the products with the highest CpS per price
+        var recommended = knownProducts.slice();
 
-        // recommend the product with the highest CpS per price
-        if (knownProducts.length > 0) {
-            recommended = knownProducts[0];
-        }
-
-        // recommend an unknown product if it is cheaper
+        // prefer an unknown product if it is cheaper
         if (unknownProducts.length > 0 && 
-            (recommended == null || unknownProducts[0].price < recommended.price)) {
-            recommended = unknownProducts[0];
+            (recommended.length == 0 || unknownProducts[0].price < recommended[0].price)) {
+            recommended.unshift(unknownProducts[0]);
+
+            unknownProducts.slice(1).forEach((product) => { recommended.push(product); });
+        }
+        else {
+            unknownProducts.forEach((product) => { recommended.push(product); });
         }
 
-        if (recommended && show) {
-            $(recommended.elem).append(
-                $('<div>')
-                    .addClass('cookie-assist-recommend')
-                    .css('display', 'inline-block')
-                    .css('width', '13px')
-                    .css('height', '13px')
-                    .css('position', 'relative')
-                    .css('top', '0')
-                    .css('left', '0')
-                    .css('background-color', 'rgb(117, 171, 52)')
-                    .css('border-radius', '7px')
-                    .css('box-shadow', '0 0 20px 10px rgb(117, 171, 52)')
-                    .css('border', '1px solid rgba(0, 0, 0, 0.8)')
-            );
+        recommended = recommended.slice(0, 5);
+
+        if (recommended.length > 0 && show) {
+            for (var i=0; i < recommended.length; i++) {
+                var bgcolor = (i == 0) ? 'rgb(117, 171, 52)' : 'rgb(146, 252, 122)';
+
+                $(recommended[i].elem).append(
+                    $('<div>')
+                        .addClass('cookie-assist-recommend')
+                        .css('display', 'inline-block')
+                        .css('width', '15px')
+                        .css('height', '15px')
+                        .css('position', 'relative')
+                        .css('top', '8px')
+                        .css('left', '5px')
+                        .css('background-color', bgcolor)
+                        .css('border-radius', '7px')
+                        .css('box-shadow', `0 0 20px 10px ${bgcolor}`)
+                        .css('border', '1px solid rgba(0, 0, 0, 0.8)')
+                        .css('text-align', 'center')
+                        .css('vertical-align', 'middle')
+                        .css('color', 'black')
+                        .css('font-size', '11pt')
+                        .text(i + 1)
+                );
+            }
 
             var currentCookies = parseShortNumber(
                 $('#cookies')
@@ -385,7 +397,7 @@
                     .text()
             );
 
-            var remainingCookies = recommended.price - currentCookies;
+            var remainingCookies = recommended[0].price - currentCookies;
             var cpsProdAverage = cpsProd.movingAverage();
 
             if (remainingCookies > 0 && cpsProdAverage > 0) {
@@ -442,11 +454,11 @@
             }
         }
 
-        if (recommended != lastRecommended && 
-            (recommended == null || lastRecommended == null || recommended.name != lastRecommended.name))
+        if (recommended.length != lastRecommended.length && 
+            (recommended.length == 0 || lastRecommended.length == 0 || recommended[0].name != lastRecommended[0].name))
         {
             log.info('now recommending:');
-            logProduct(recommended, log.info);
+            recommended.forEach((product) => { logProduct(product, log.info); });
         }
 
         lastRecommended = recommended;
@@ -528,11 +540,11 @@
 
         if (flags.recommend || flags.purchase) {
             if (iterCount % 20 == 0) {
-                var product = updateRecommendation(flags.recommend);
+                var recommended = updateRecommendation(flags.recommend);
 
-                if (flags.purchase && product && product.enabled) {
-                    log.info(`purchasing ${product.name} @ ${product.cpsEachPerPrice} CpS per price`);
-                    $(product.elem).click();
+                if (flags.purchase && recommended.length > 0 && recommended[0].enabled) {
+                    log.info(`purchasing ${recommended[0].name} @ ${recommended[0].cpsEachPerPrice} CpS per price`);
+                    $(recommended[0].elem).click();
                     return;
                 }
             }
