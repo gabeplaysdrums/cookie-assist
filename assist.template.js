@@ -1,6 +1,9 @@
 (function($) {
 
     const version = "{{VERSION}}";
+    var options = {
+        recommendCount: 5,
+    };
 
     const log = (function(){
         function makeLogFunction(consoleFunc) {
@@ -188,7 +191,7 @@
 
             var product = {
                 elem: this,
-                name: $(this).find('.productName').first().text(),
+                name: null,
                 price: parseShortNumber($(this).find('.price').first().text()),
                 owned: parseInt($(this).find('.owned').first().text()),
                 enabled: $(this).hasClass('enabled'),
@@ -197,6 +200,7 @@
 
             $(this).mouseover();
 
+            product.name = $tooltip.find('.name').text();
             product.warning = exists($tooltip.find('.warning'));
 
             $tooltip.find('.descriptionBlock').each(function() {
@@ -361,31 +365,34 @@
             unknownProducts.forEach((product) => { recommended.push(product); });
         }
 
-        recommended = recommended.slice(0, 5);
+        recommended = recommended.slice(0, options.recommendCount);
 
-        if (recommended.length > 0 && show) {
-            for (var i=0; i < recommended.length; i++) {
-                var bgcolor = (i == 0) ? 'rgb(117, 171, 52)' : 'rgb(146, 252, 122)';
+        if (recommended.length > 0) {
+            if (show) {
+                for (var i=0; i < recommended.length; i++) {
+                    var bgColor = (i == 0) ? 'rgb(117, 171, 52)' : 'rgb(146, 252, 122)';
+                    var fontSize = ((i + 1).toString().length < 2) ? '11pt' : '9pt';
 
-                $(recommended[i].elem).append(
-                    $('<div>')
-                        .addClass('cookie-assist-recommend')
-                        .css('display', 'inline-block')
-                        .css('width', '15px')
-                        .css('height', '15px')
-                        .css('position', 'relative')
-                        .css('top', '8px')
-                        .css('left', '5px')
-                        .css('background-color', bgcolor)
-                        .css('border-radius', '7px')
-                        .css('box-shadow', `0 0 20px 10px ${bgcolor}`)
-                        .css('border', '1px solid rgba(0, 0, 0, 0.8)')
-                        .css('text-align', 'center')
-                        .css('vertical-align', 'middle')
-                        .css('color', 'black')
-                        .css('font-size', '11pt')
-                        .text(i + 1)
-                );
+                    $(recommended[i].elem).append(
+                        $('<div>')
+                            .addClass('cookie-assist-recommend')
+                            .css('display', 'inline-block')
+                            .css('min-width', '15px')
+                            .css('height', '15px')
+                            .css('position', 'relative')
+                            .css('top', '8px')
+                            .css('left', '5px')
+                            .css('background-color', bgColor)
+                            .css('border-radius', '7px')
+                            .css('box-shadow', `0 0 20px 10px ${bgColor}`)
+                            .css('border', '1px solid rgba(0, 0, 0, 0.8)')
+                            .css('text-align', 'center')
+                            .css('vertical-align', 'middle')
+                            .css('color', 'black')
+                            .css('font-size', fontSize)
+                            .text(i + 1)
+                    );
+                }
             }
 
             var currentCookies = parseShortNumber(
@@ -593,6 +600,7 @@
     $.extend(window.CookieAssist, {
         version: version,
         flags: flags,
+        options: options,
     });
 
 })(jQuery);
