@@ -33,6 +33,10 @@ var buildInfo = [];
     function addCommandOutputHash(label, command) {
         var commandOutput = execSync(command);
         if (commandOutput && commandOutput.toString() && commandOutput.toString().trim().length > 0) {
+            if (options.publish) {
+                throw 'There are uncommitted changes in the repository.  Cannot publish.';
+            }
+
             var hash = execSync('git hash-object -t blob --stdin', { input: commandOutput }).toString().trim();
             buildInfo.push(`${label}.${hash}`)
         }
