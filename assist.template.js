@@ -148,8 +148,6 @@
         var $originalTooltipSubject = $tooltipSubject;
 
         var $tooltip = $('#tooltip');
-        var $tooltipParent = $tooltip.parent();
-        $tooltip.remove();
 
         var knownProducts = [];
         var unknownProducts = [];
@@ -247,8 +245,6 @@
                     return;
                 }
             });
-            $(this).mouseout();
-            $tooltip.mouseout();
 
             var pluralized = pluralize(product.name.toLowerCase());
             pluralBuildings[pluralized] = product;
@@ -314,14 +310,11 @@
                     return;
                 }
             });
-
-            $(this).mouseout();
-            $tooltip.mouseout();
-
+            
             addProduct(product);
         });
 
-        // add grandma boosts
+        // calculate grandma boosts
         var grandmas = pluralBuildings['grandmas'];
 
         if (grandmas && grandmas.owned > 0 && grandmas.price && grandmas.cpsEach && grandmas.buildingBoostPcts) {
@@ -336,12 +329,16 @@
             grandmas.cpsEachPerPrice = grandmas.cpsEach / grandmas.price;
         }
 
-        $tooltipParent.append($tooltip);
+        $tooltipSubject.mouseout();
+        $tooltip.mouseout();
 
         if (exists($originalTooltipSubject)) {
-            $tooltipSubject = $originalTooltipSubject;
             $originalTooltipSubject.mouseover();
+        } else {
+            $tooltip.mouseout();
         }
+
+        $tooltipSubject = $originalTooltipSubject;
 
         knownProducts.sort((a, b) => { return b.cpsEachPerPrice - a.cpsEachPerPrice; });
         unknownProducts.sort((a, b) => { return a.price - b.price; });
