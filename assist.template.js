@@ -101,6 +101,35 @@
         .css('margin-left', '10px');
 
     var lastRecommended = null;
+    var cpsProd = (function() {
+        var count = 0;
+        var samples = new Array(5000);
+        var sum = 0;
+        var latest = NaN;
+
+        return {
+            latest: function() {
+                return latest;
+            },
+            addSample: function(val) {
+                latest = val;
+                if (val == null)
+                    return;
+                sum += val;
+                var expireVal = samples[count % samples.length];
+                samples[count % samples.length] = val;
+                count++;
+                if (count > samples.length)
+                    sum -= expireVal;
+            },
+            movingAverage: function() {
+                if (count > 0)
+                    return sum / Math.min(count, samples.length);
+                else
+                    return NaN;
+            }
+        };
+    })();
 
     function clearRecommendation() {
         $('.product,.upgrade').find('.cookie-assist-recommend').remove();
@@ -150,17 +179,6 @@
 
             logFn(`  ${JSON.stringify(productCopy)}`);
         }
-
-        // get production CpS
-        var cpsProd = (function() {
-            var text = $('#cookiesPerSecond').text();
-            var m = null;
-
-            if ((m = text.match(/per second: (.*)/)) != null)
-            {
-                return parseShortNumber(m[1]);
-            }
-        })();
 
         var pluralBuildings = {};
         var grandmaBoostPct = {};
@@ -250,7 +268,7 @@
                     (m = text.match(/Cookie production multiplier \+(\d+(\.\d+)?)%\./)) != null)
                 {
                     product.addedProdMult = parseFloat(m[1]) / 100;
-                    product.cpsEach = cpsProd * product.addedProdMult;
+                    product.cpsEach = cpsProd.latest() * product.addedProdMult;
                     return;
                 }
 
@@ -283,7 +301,7 @@
                     (m = text.match(/Clicking gains \+(\d+(\.\d+)?)% of your CpS/)) != null)
                 {
                     product.addedProdMult = parseFloat(m[1]) / 100;
-                    product.cpsEach = cpsProd * product.addedProdMult * averageMouseClicksPerSecond;
+                    product.cpsEach = cpsProd.latest() * product.addedProdMult * averageMouseClicksPerSecond;
                     return;
                 }
             });
@@ -370,10 +388,9 @@
             var remainingCookies = recommended.price - currentCookies;
 
             if (remainingCookies > 0) {
-
                 var now = new Date();
                 var eta = new Date(now.getTime());
-                eta.setSeconds(eta.getSeconds() + remainingCookies / cpsProd);
+                eta.setSeconds(eta.getSeconds() + remainingCookies / cpsProd.movingAverage());
 
                 var timeStr = '';
                 var timeSuffix = 'AM';
@@ -399,23 +416,12 @@
 
                 var dateStr = '';
                 
-                var monthStr = ([
-                    'Jan',
-                    'Feb',
-                    'Mar',
-                    'Apr',
-                    'May',
-                    'Jun',
-                    'Jul',
-                    'Aug',
-                    'Sep',
-                    'Nov',
-                    'Dec',
-                ])[eta.getMonth()];
+                const monthNames = [ 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec' ];
+                var monthStr = monthNames[eta.getMonth()];
                 
                 if (eta.getFullYear() != now.getFullYear()) {
                     // full date including year
-                    dateStr = ` on ${monthStr} ${eta.getDate()} ${eta.getFullYear()}`;
+                    dateStr = ` on ${monthStr} ${eta.getDate()}, ${eta.getFullYear()}`;
                 }
                 else if (eta.getMonth() != now.getMonth()) {
                     // date excluding year
@@ -492,6 +498,19 @@
     var interval = window.setInterval(function() {
 
         iterCount++;
+
+        // get production CpS
+        cpsProd.addSample((function() {
+            var text = $('#cookiesPerSecond').text();
+            var m = null;
+
+            if ((m = text.match(/per second: (.*)/)) != null)
+            {
+                return parseShortNumber(m[1]);
+            }
+        })());
+
+        log.debug(`Production CpS: latest=${cpsProd.latest()}, moving average=${cpsProd.movingAverage()}`);
 
         log.debug('computing action');
 
