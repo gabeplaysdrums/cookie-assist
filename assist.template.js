@@ -1,6 +1,8 @@
 (function($) {
 
-    const version = "{{VERSION}}";
+    const version = '{{FULL_VERSION}}';
+    const shortVersion = '{{VERSION}}';
+    
     var options = {
         recommendCount: 5,
     };
@@ -101,7 +103,7 @@
         .css('padding', '5px')
         .css('margin', '2px')
         .css('color', '#fff')
-        .append($(`<b>Cookie Assistant v${version}:</b> `));
+        .append($(`<b title="version ${version}">Cookie Assistant v${shortVersion}:</b> `));
 
     var $eta = $('<span>')
         .css('margin-left', '10px');
