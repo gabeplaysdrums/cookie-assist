@@ -159,6 +159,7 @@
         })();
 
         var pluralBuildings = {};
+        var grandmaBoostPct = {};
 
         // find all buildings
         $('.product.unlocked').each(function () {
@@ -190,6 +191,28 @@
                 {
                     product.cpsTotal = parseShortNumber(m[1]);
                     product.cpsPct = parseFloat(m[2]) / 100.0;
+                    return;
+                }
+
+                if (product.name == 'Grandma' && 
+                    (m = text.match(/also boosting some other buildings: (.*) - all combined, these boosts account for (.*) cookies per second \((\d+(\.\d*)?)% of total CpS\)/)) != null)
+                {
+                    // compute grandma buffs
+                    var boostsText = m[1];
+                    var boostsTotal = parseShortNumber(m[2]);
+                    var boostsTotalCpsPct = parseFloat(m[2]) / 100.0;
+
+                    product.buildingBoostPcts = product.buildingBoostPcts || {};
+
+                    boostsText.split(',').forEach((text) => {
+                        if ((m = text.match(/(\w+( \w+)*) \+(\d+(\.\d*)?)%/)) != null) {
+                            var buildingPlural = m[1].toLowerCase();
+                            var boostPct = parseFloat(m[3]) / 100.0;
+
+                            product.buildingBoostPcts[buildingPlural] = boostPct;
+                        }
+                    });
+
                     return;
                 }
             });
@@ -266,6 +289,21 @@
 
             addProduct(product);
         });
+
+        // add grandma boosts
+        var grandmas = pluralBuildings['grandmas'];
+
+        if (grandmas && grandmas.owned > 0 && grandmas.price && grandmas.cpsEach && grandmas.buildingBoostPcts) {
+            for (var pluralBuilding in grandmas.buildingBoostPcts) {
+                var building = pluralBuildings[pluralBuilding];
+                if (!building || !building.cpsTotal)
+                    continue;
+                var cpsPctPerGrandma = grandmas.buildingBoostPcts[pluralBuilding] / grandmas.owned;
+                grandmas.cpsEach += building.cpsTotal * cpsPctPerGrandma;
+            }
+
+            grandmas.cpsEachPerPrice = grandmas.cpsEach / grandmas.price;
+        }
 
         $tooltipParent.append($tooltip);
 
