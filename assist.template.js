@@ -579,7 +579,7 @@
     addFlagToMenu('bigCookie', 'click big cookie');
     addFlagToMenu('goldenCookie', 'click golden cookies');
     addFlagToMenu('recommend', 'show recommendations');
-    addFlagToMenu('purchase', 'purchase recommendations');
+    addFlagToMenu('purchase', 'purchase top recommendation');
 
     $assist.append($eta);
 
