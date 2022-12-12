@@ -138,7 +138,7 @@
     })();
 
     function clearRecommendation() {
-        $('.product,.upgrade').find('.cookie-assist-recommend').remove();
+        $('.product,.upgrade').not('.noFrame').find('.cookie-assist-recommend').remove();
         $eta.empty();
     }
 
@@ -255,7 +255,7 @@
         });
 
         // find upgrades
-        $('.upgrade').each(function() {
+        $('.upgrade').not('.noFrame').each(function() {
             $(this).mouseover();
 
             var product = {
@@ -477,7 +477,7 @@
 
     var flags = {};
 
-    $('.product,.upgrade').click(function() {
+    $('.product,.upgrade').not('.noFrame').click(function() {
         if (flags.recommend || flags.purchase) {
             updateRecommendation(flags.recommend);
         }
