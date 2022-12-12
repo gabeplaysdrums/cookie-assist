@@ -386,11 +386,12 @@
             );
 
             var remainingCookies = recommended.price - currentCookies;
+            var cpsProdAverage = cpsProd.movingAverage();
 
-            if (remainingCookies > 0) {
+            if (remainingCookies > 0 && cpsProdAverage > 0) {
                 var now = new Date();
                 var eta = new Date(now.getTime());
-                eta.setSeconds(eta.getSeconds() + remainingCookies / cpsProd.movingAverage());
+                eta.setSeconds(eta.getSeconds() + remainingCookies / cpsProdAverage);
 
                 var timeStr = '';
                 var timeSuffix = 'AM';
