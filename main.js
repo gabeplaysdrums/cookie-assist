@@ -6,12 +6,20 @@ const path = require('path');
 const minify = require('@node-minify/core');
 const uglifyjs = require('@node-minify/uglify-js');
 const noCompress = require('@node-minify/no-compress');
+const { versions } = require('process');
 var execSync = require('child_process').execSync;
 
 const outputDir = './output'
 
 if (!fs.existsSync(outputDir))
     fs.mkdirSync(outputDir);
+
+var options = {};
+
+for (var i=2; i < process.argv.length; i++) {
+    if (process.argv[i] == '--publish')
+        options.publish = true;
+}
 
 var buildInfo = [];
 
@@ -34,6 +42,10 @@ var buildInfo = [];
     addCommandOutputHash('unstaged', 'git diff');
 })();
 
+function computeFullVersion(versionSuffix = '') {
+    return `${packageJson.version}${versionSuffix}+${buildInfo.join('.')}`;
+}
+
 function makeInstaller(outputHtml, versionSuffix, compressor) {
     var tokens = {};
 
@@ -44,7 +56,7 @@ function makeInstaller(outputHtml, versionSuffix, compressor) {
         return data;
     }
 
-    tokens['FULL_VERSION'] = `${packageJson.version}${versionSuffix}+${buildInfo.join('.')}`;
+    tokens['FULL_VERSION'] = computeFullVersion(versionSuffix);
     tokens['VERSION'] = `${packageJson.version}${versionSuffix}`;
 
     var data = fs.readFileSync('./assist.template.js', 'utf8');
@@ -80,3 +92,9 @@ function makeInstaller(outputHtml, versionSuffix, compressor) {
 
 makeInstaller(path.join(outputDir, 'install.html'), '', uglifyjs);
 makeInstaller(path.join(outputDir, 'install-dev.html'), '-dev', noCompress);
+
+if (options.publish) {
+    var version = computeFullVersion();
+    execSync(`git commit -am "publishing installer for version ${version}"`);
+    execSync(`git tag "${version}"`);
+}
