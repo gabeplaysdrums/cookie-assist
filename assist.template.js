@@ -91,12 +91,6 @@
         return 1;
     }
 
-    var $tooltipSubject = null;
-
-    $('.product,.upgrade')
-        .mouseover(function(){ $tooltipSubject = $(this); })
-        .mouseout(function(){ $tooltipSubject = null; });
-
     var $assist = $('<div>')
         .attr('id', 'cookie-assist')
         .css('display', 'inline-block')
@@ -139,15 +133,51 @@
         };
     })();
 
+    var gameTooltipHook = (function() {
+        var originalDraw = Game.tooltip.draw;
+        var lastSubject = null;
+
+        function hookDraw(elem) {
+            lastSubject = elem;
+            return originalDraw.apply(Game.tooltip, [...arguments]);
+        }
+
+        Game.tooltip.draw = hookDraw;
+
+        function currentSubject() {
+            if (!Game.tooltip.on)
+                return null;
+            return lastSubject;
+        }
+
+        return {
+            subject: currentSubject,
+            subjectQuery: function() {
+                var subject = currentSubject();
+                if (subject)
+                    return $(subject);
+                return $();
+            }
+        };
+    })();
+
     function clearRecommendation() {
         $('.product,.upgrade').not('.noFrame').find('.cookie-assist-recommend').remove();
         $eta.empty();
     }
 
     function updateRecommendation(show) {
-        var $originalTooltipSubject = $tooltipSubject;
+        var $originalTooltipSubject = gameTooltipHook.subjectQuery();
 
-        var $tooltip = $('#tooltip');
+        // direct game's tooltip element to a fake one
+        var originalTooltip = Game.tooltip.tt;
+        var originalTooltipAnchor = Game.tooltip.tta;
+        var $tooltip = $('<div>');
+        var $tooltipAnchor = $('<div>');
+        Game.tooltip.tt = $tooltip[0];
+        Game.tooltip.tta = $tooltipAnchor[0];
+
+        $originalTooltipSubject.mouseout();
 
         var knownProducts = [];
         var unknownProducts = [];
@@ -201,7 +231,9 @@
                 type: 'Building',
             };
 
+            gameTooltipHook.subjectQuery().mouseout();
             $(this).mouseover();
+            Game.tooltip.shouldHide = 1;
 
             product.name = $tooltip.find('.name').text();
             product.warning = exists($tooltip.find('.warning'));
@@ -254,7 +286,9 @@
 
         // find upgrades
         $('.upgrade').not('.noFrame').each(function() {
+            gameTooltipHook.subjectQuery().mouseout();
             $(this).mouseover();
+            Game.tooltip.shouldHide = 1;
 
             var product = {
                 elem: this,
@@ -329,16 +363,13 @@
             grandmas.cpsEachPerPrice = grandmas.cpsEach / grandmas.price;
         }
 
-        $tooltipSubject.mouseout();
-        $tooltip.mouseout();
+        gameTooltipHook.subjectQuery().mouseout();
 
-        if (exists($originalTooltipSubject)) {
-            $originalTooltipSubject.mouseover();
-        } else {
-            $tooltip.mouseout();
-        }
+        // restore game's original tooltip element
+        Game.tooltip.tt = originalTooltip;
+        Game.tooltip.tta = originalTooltipAnchor;
 
-        $tooltipSubject = $originalTooltipSubject;
+        $originalTooltipSubject.mouseover();
 
         knownProducts.sort((a, b) => { return b.cpsEachPerPrice - a.cpsEachPerPrice; });
         unknownProducts.sort((a, b) => { return a.price - b.price; });
