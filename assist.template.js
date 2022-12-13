@@ -177,6 +177,10 @@
         Game.tooltip.tt = $tooltip[0];
         Game.tooltip.tta = $tooltipAnchor[0];
 
+        // temporarily suspend mouse down behavior
+        var originalMouseDown = Game.mouseDown;
+        Game.mouseDown = 0;
+
         $originalTooltipSubject.mouseout();
 
         var knownProducts = [];
@@ -370,6 +374,9 @@
         Game.tooltip.tta = originalTooltipAnchor;
 
         $originalTooltipSubject.mouseover();
+
+        // resume mouse down behavior
+        Game.mouseDown = originalMouseDown;
 
         knownProducts.sort((a, b) => { return b.cpsEachPerPrice - a.cpsEachPerPrice; });
         unknownProducts.sort((a, b) => { return a.price - b.price; });
