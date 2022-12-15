@@ -655,6 +655,18 @@
     addFlagToMenu('bigCookie', 'click big cookie');
     addFlagToMenu('goldenCookie', 'click golden cookies');
     addFlagToMenu('recommend', 'show recommendations');
+
+    $assist.append($('<select>')
+        .append('<option>5</option>')
+        .append('<option>10</option>')
+        .append('<option>25</option>')
+        .append('<option>99</option>')
+        .css('margin-left', '5px')
+        .change(function() {
+            options.recommendCount = parseInt($(this).val());
+        })
+    );
+
     addFlagToMenu('purchase', 'purchase top recommendation');
 
     $assist.append($eta);
