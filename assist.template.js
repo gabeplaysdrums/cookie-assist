@@ -217,6 +217,11 @@
                 delete productCopy.building['elem'];
             }
 
+            if (product.grandmaBoostBuilding) {
+                productCopy.grandmaBoostBuilding = Object.assign({}, product.grandmaBoostBuilding);
+                delete productCopy.building['elem'];
+            }
+
             logFn(`  ${JSON.stringify(productCopy)}`);
         }
 
@@ -288,6 +293,8 @@
             addProduct(product);
         });
 
+        var grandmas = pluralBuildings['grandmas'];
+
         // find upgrades
         $('.upgrade').not('.noFrame').each(function() {
             gameTooltipHook.subjectQuery().mouseout();
@@ -312,7 +319,6 @@
                 {
                     product.addedProdMult = parseFloat(m[1]) / 100;
                     product.cpsEach = cpsProd.latest() * product.addedProdMult;
-                    return;
                 }
 
                 if (product.type == 'Upgrade' &&
@@ -336,8 +342,34 @@
                         product.buildingMult = parseMultiplierText(multiplierText);
                         product.cpsEach = (product.buildingMult - 1) * building.cpsTotal;
                     }
+                }
 
-                    return;
+                if (product.type == 'Upgrade' &&
+                    (m = text.match(/(\w+( \w+)*) gain \+(\d+(\.\d+)?)% CpS per (\d+) grandmas\./)) != null)
+                {
+                    var pluralBuilding = m[1].toLowerCase();
+                    product.boostPctPerNGrandmas = parseFloat(m[3]) / 100;
+                    product.grandmasPerBoost = parseInt(m[5]);
+
+                    var building = (function() {
+                        for (var name in pluralBuildings) {
+                            if (pluralBuilding.indexOf(name) < 0)
+                                continue;
+                            return pluralBuildings[name];
+                        }
+
+                        return null;
+                    })();
+
+                    if (building) {
+                        product.grandmaBoostBuilding = building;
+
+                        if (grandmas && grandmas.owned && 
+                            product.boostPctPerNGrandmas && product.grandmasPerBoost) {
+                            product.cpsEach = product.cpsEach || 0;
+                            product.cpsEach += building.cpsEach * product.boostPctPerNGrandmas * grandmas.owned / product.grandmasPerBoost;
+                        }
+                    }
                 }
 
                 if (product.type == 'Upgrade' && 
@@ -345,7 +377,6 @@
                 {
                     product.addedProdMult = parseFloat(m[1]) / 100;
                     product.cpsEach = cpsProd.latest() * product.addedProdMult * averageMouseClicksPerSecond;
-                    return;
                 }
             });
             
@@ -353,8 +384,6 @@
         });
 
         // calculate grandma boosts
-        var grandmas = pluralBuildings['grandmas'];
-
         if (grandmas && grandmas.owned > 0 && grandmas.price && grandmas.cpsEach && grandmas.buildingBoostPcts) {
             for (var pluralBuilding in grandmas.buildingBoostPcts) {
                 var building = pluralBuildings[pluralBuilding];
