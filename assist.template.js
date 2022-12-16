@@ -2,9 +2,17 @@
 
     const version = '{{FULL_VERSION}}';
     const shortVersion = '{{VERSION}}';
+
+    const recommendAlgos = {
+        Price: 'P',
+        InversePrice: '1/P',
+        CpSPerPrice: 'CpS/P',
+        CpSPerPricePerTTE: 'CpS/P/TTE',
+    };
     
     var options = {
         recommendCount: 5,
+        recommendAlgo: recommendAlgos.CpSPerPrice,
     };
 
     const log = (function(){
@@ -406,10 +414,10 @@
 
         // resume mouse down behavior
         Game.mouseDown = originalMouseDown;
-
-        knownProducts.sort((a, b) => { return b.cpsEachPerPrice - a.cpsEachPerPrice; });
-        unknownProducts.sort((a, b) => { return a.price - b.price; });
-        ignoredProducts.sort((a, b) => { return a.price - b.price; });
+        
+        knownProducts.sort((a, b) => { return a.name.localeCompare(b.name); });
+        unknownProducts.sort((a, b) => { return a.name.localeCompare(b.name); });
+        ignoredProducts.sort((a, b) => { return a.name.localeCompare(b.name); });
 
         log.debug('known products:');
         knownProducts.forEach((product) => { logProduct(product, log.debug); });
@@ -420,18 +428,42 @@
 
         clearRecommendation();
 
-        // recommend the products with the highest CpS per price
-        var recommended = knownProducts.slice();
+        recommended = [];
 
-        // prefer an unknown product if it is cheaper
-        if (unknownProducts.length > 0 && 
-            (recommended.length == 0 || unknownProducts[0].price < recommended[0].price)) {
-            recommended.unshift(unknownProducts[0]);
+        if (options.recommendAlgo == recommendAlgos.Price || options.recommendAlgo == recommendAlgos.InversePrice) {
+            recommended = [].concat(knownProducts).concat(unknownProducts);
 
-            unknownProducts.slice(1).forEach((product) => { recommended.push(product); });
+            if (options.recommendAlgo == recommendAlgos.Price)
+                recommended.sort((a, b) => { return b.price - a.price; });
+            else // InversePrice
+                recommended.sort((a, b) => { return (1 / b.price) - (1 / a.price); });
         }
         else {
-            unknownProducts.forEach((product) => { recommended.push(product); });
+            if (options.recommendAlgo == recommendAlgos.CpSPerPricePerTTE)
+                knownProducts.sort((a, b) => {
+                    var aTTE = a.price / cpsProd.latest();
+                    var bTTE = b.price / cpsProd.latest();
+                    return b.cpsEachPerPrice / bTTE - a.cpsEachPerPrice / aTTE;
+                });
+            else
+                knownProducts.sort((a, b) => { return b.cpsEachPerPrice - a.cpsEachPerPrice; });
+
+            unknownProducts.sort((a, b) => { return a.price - b.price; });
+            ignoredProducts.sort((a, b) => { return a.price - b.price; });
+
+            // recommend the products with the highest CpS per price
+            recommended = knownProducts.slice();
+
+            // prefer an unknown product if it is cheaper
+            if (unknownProducts.length > 0 && 
+                (recommended.length == 0 || unknownProducts[0].price < recommended[0].price)) {
+                recommended.unshift(unknownProducts[0]);
+
+                unknownProducts.slice(1).forEach((product) => { recommended.push(product); });
+            }
+            else {
+                unknownProducts.forEach((product) => { recommended.push(product); });
+            }
         }
 
         recommended = recommended.slice(0, options.recommendCount);
@@ -583,10 +615,16 @@
     })();
 
     var iterCount = 0;
+    var firstActionTimestamp = null;
+    var lastCpsLoggedTimestamp = null;
+    var cpsLogData = [];
     
     var interval = window.setInterval(function() {
 
+        var now = new Date();
         iterCount++;
+
+        var cpsProdBuffed = exists($('.crate.enabled.buff'));
 
         // get production CpS
         cpsProd.addSample((function() {
@@ -601,40 +639,62 @@
 
         log.debug(`Production CpS: latest=${cpsProd.latest()}, moving average=${cpsProd.movingAverage()}`);
 
-        log.debug('computing action');
+        var actionPerformed = (function() {
+            log.debug('computing action');
 
-        if (flags.goldenCookie) {
-            var $shimmer = $('.shimmer').first();
+            if (flags.goldenCookie) {
+                var $shimmer = $('.shimmer').first();
 
-            if (exists($shimmer))
-            {
-                log.info('clicking golden cookie');
-                $shimmer.click();
-                return;
-            }
-        }
-
-        if (flags.recommend || flags.purchase) {
-            if (iterCount % 20 == 0) {
-                var recommended = updateRecommendation(flags.recommend);
-
-                if (flags.purchase && recommended.length > 0 && recommended[0].enabled) {
-                    log.info(`purchasing ${recommended[0].name} @ ${recommended[0].cpsEachPerPrice} CpS per price`);
-                    $(recommended[0].elem).click();
-                    return;
+                if (exists($shimmer))
+                {
+                    log.info('clicking golden cookie');
+                    $shimmer.click();
+                    return true;
                 }
             }
-        }
-        else {
-            clearRecommendation();
+
+            if (flags.recommend || flags.purchase) {
+                if (iterCount % 20 == 0) {
+                    var recommended = updateRecommendation(flags.recommend);
+
+                    if (flags.purchase && recommended.length > 0 && recommended[0].enabled) {
+                        log.info(`purchasing ${recommended[0].name} @ ${recommended[0].cpsEachPerPrice} CpS per price`);
+                        $(recommended[0].elem).click();
+                        return true;
+                    }
+                }
+            }
+            else {
+                clearRecommendation();
+            }
+
+            if (flags.bigCookie) {
+                log.debug('clicking big cookie');
+                $('#bigCookie').click();
+                return true;
+            }
+        })();
+
+        function logCps() {
+            cpsLogData.push([
+                (now - firstActionTimestamp) / 1000,
+                cpsProd.latest(),
+            ]);
+            lastCpsLoggedTimestamp = now;
         }
 
-        if (flags.bigCookie) {
-            log.debug('clicking big cookie');
-            $('#bigCookie').click();
-            return;
-        }
+        if (actionPerformed && !firstActionTimestamp)
+            firstActionTimestamp = now;
 
+        if (firstActionTimestamp && !cpsProdBuffed) {
+            if (lastCpsLoggedTimestamp) {
+                var secondsSinceLastLog = (now - lastCpsLoggedTimestamp) / 1000;
+                if (secondsSinceLastLog >= 2)
+                    logCps();
+            }
+            else
+                logCps();
+        }
     }, 100);
 
     function addFlagToMenu(name, label) {
@@ -667,9 +727,75 @@
         })
     );
 
+    var $recommendAlgoSelect = $('<select>')
+        .css('margin-left', '5px')
+        .change(function() {
+            options.recommendAlgo = $(this).val();
+        });
+    
+    $assist.append($recommendAlgoSelect);
+
+    $.each(recommendAlgos, function( name, value ) {
+        $recommendAlgoSelect.append(
+            `<option value="${value}"${value == options.recommendAlgo ? ' selected' : ''}>${value}${value == options.recommendAlgo ? ' (default)' : ''}</option>`
+        );
+    });
+
     addFlagToMenu('purchase', 'purchase top recommendation');
 
     $assist.append($eta);
+
+    function downloadCsv (data, filename) {
+
+        // Creating a Blob for having a csv file format
+        // and passing the data with type
+        const blob = new Blob([data], { type: 'text/csv' });
+    
+        // Creating an object for downloading url
+        const url = window.URL.createObjectURL(blob)
+    
+        // Creating an anchor(a) tag of HTML
+        const a = document.createElement('a')
+    
+        // Passing the blob downloading url
+        a.setAttribute('href', url)
+    
+        // Setting the anchor tag attribute for downloading
+        // and passing the download file name
+        a.setAttribute('download', filename);
+    
+        // Performing a download with click
+        a.click()
+    }
+
+    function downloadCpsLogCsv() {
+        var csv = [
+            'Seconds since first action',
+            'CpS (raw)'
+        ].join(',');
+
+        cpsLogData.forEach((item) => {
+            csv += `\n${item.join(',')}`
+        });
+
+        var bakeryName = (function() {
+            var text = $('#bakeryName').text();
+            var m = null;
+
+            if ((m = text.match(/(.*)'s bakery/)) != null) {
+                return `${m[1].replace(/[&/#,+()$~%.'":*?<>{} ]/g, '')}sBakery`;
+            }
+
+            return null;
+        })();
+
+        downloadCsv(csv, `cpsLog${ bakeryName ? '-' + bakeryName : '' }.csv`);
+    }
+
+    $assist.append($('<a href="#">CpS Log</a>')
+        .css('margin-left', '10px')
+        .click(downloadCpsLogCsv)
+    );
 
     $('#topBar').children().css('display', 'none');
     $("#topBar").append($assist);
@@ -682,6 +808,7 @@
         version: version,
         flags: flags,
         options: options,
+        recommendAlgos: recommendAlgos,
     });
 
 })(jQuery);
