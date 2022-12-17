@@ -150,6 +150,7 @@
     var gameTooltipHook = (function() {
         var originalDraw = Game.tooltip.draw;
         var lastSubject = null;
+        var automationState = null;
 
         function hookDraw(elem) {
             lastSubject = elem;
@@ -171,7 +172,36 @@
                 if (subject)
                     return $(subject);
                 return $();
-            }
+            },
+            enableAutomationMode: function(enable = true) {
+                if (enable && !automationState) {
+                    automationState = {
+                        originalTooltipOn: Game.tooltip.on,
+                        originalTooltip: Game.tooltip.tt,
+                        originalTooltipAnchor: Game.tooltip.tta,
+                        originalMouseDown: Game.mouseDown,
+                        fakeTooltipElem: $('<div>')[0],
+                        fakeTooltipAnchorElem: $('<div>')[0],
+                    };
+
+                    // direct game's tooltip element to a fake one
+                    Game.tooltip.tt = automationState.fakeTooltipElem;
+                    Game.tooltip.tta = automationState.fakeTooltipAnchorElem;
+
+                    // temporarily suspend mouse down behavior
+                    Game.mouseDown = 0;
+                }
+                else if (!enable && automationState) {
+                    Game.tooltip.tt = automationState.originalTooltip;
+                    Game.tooltip.tta = automationState.originalTooltipAnchor;
+                    Game.tooltip.on = automationState.originalTooltipOn;
+                    Game.mouseDown = automationState.originalMouseDown;
+                    automationState = null;
+                }
+            },
+            tooltipQuery: function() {
+                return $(Game.tooltip.tt);
+            },
         };
     })();
 
@@ -183,17 +213,8 @@
     function updateRecommendation(show) {
         var $originalTooltipSubject = gameTooltipHook.subjectQuery();
 
-        // direct game's tooltip element to a fake one
-        var originalTooltip = Game.tooltip.tt;
-        var originalTooltipAnchor = Game.tooltip.tta;
-        var $tooltip = $('<div>');
-        var $tooltipAnchor = $('<div>');
-        Game.tooltip.tt = $tooltip[0];
-        Game.tooltip.tta = $tooltipAnchor[0];
-
-        // temporarily suspend mouse down behavior
-        var originalMouseDown = Game.mouseDown;
-        Game.mouseDown = 0;
+        gameTooltipHook.enableAutomationMode(true);
+        var $tooltip = gameTooltipHook.tooltipQuery();
 
         $originalTooltipSubject.mouseout();
 
@@ -411,16 +432,9 @@
         }
 
         gameTooltipHook.subjectQuery().mouseout();
-
-        // restore game's original tooltip element
-        Game.tooltip.tt = originalTooltip;
-        Game.tooltip.tta = originalTooltipAnchor;
-
+        gameTooltipHook.enableAutomationMode(false);
         $originalTooltipSubject.mouseover();
 
-        // resume mouse down behavior
-        Game.mouseDown = originalMouseDown;
-        
         knownProducts.sort((a, b) => { return a.name.localeCompare(b.name); });
         unknownProducts.sort((a, b) => { return a.name.localeCompare(b.name); });
         ignoredProducts.sort((a, b) => { return a.name.localeCompare(b.name); });
