@@ -9,10 +9,16 @@
         CpSPerPrice: 'CpS/P',
         CpSPerPricePerTTE: 'CpS/P/TTE',
     };
+
+    const purchaseAlgos = {
+        Top: 'Top',
+        BestAvailable: 'Best Available'
+    };
     
     var options = {
         recommendCount: 5,
         recommendAlgo: recommendAlgos.CpSPerPrice,
+        purchaseAlgo: purchaseAlgos.Top,
     };
 
     const log = (function(){
@@ -656,11 +662,23 @@
             if (flags.recommend || flags.purchase) {
                 if (iterCount % 20 == 0) {
                     var recommended = updateRecommendation(flags.recommend);
+                    var purchaseProduct = null;
 
-                    if (flags.purchase && recommended.length > 0 && recommended[0].enabled) {
-                        log.info(`purchasing ${recommended[0].name} @ ${recommended[0].cpsEachPerPrice} CpS per price`);
-                        $(recommended[0].elem).click();
-                        return true;
+                    if (flags.purchase) {
+                        var n = options.purchaseAlgo == purchaseAlgos.BestAvailable ? recommended.length : 1;
+
+                        for (var i=0; i < n; i++) {
+                            if (recommended[i].enabled) {
+                                purchaseProduct = recommended[i];
+                                break;
+                            }
+                        }
+
+                        if (purchaseProduct) {
+                            log.info(`purchasing ${purchaseProduct.name} @ ${purchaseProduct.cpsEachPerPrice} CpS per price`);
+                            $(purchaseProduct.elem).click();
+                            return true;
+                        }
                     }
                 }
             }
@@ -675,25 +693,27 @@
             }
         })();
 
-        function logCps() {
-            cpsLogData.push([
-                (now - firstActionTimestamp) / 1000,
-                cpsProd.latest(),
-            ]);
-            lastCpsLoggedTimestamp = now;
-        }
-
-        if (actionPerformed && !firstActionTimestamp)
-            firstActionTimestamp = now;
-
-        if (firstActionTimestamp && !cpsProdBuffed) {
-            if (lastCpsLoggedTimestamp) {
-                var secondsSinceLastLog = (now - lastCpsLoggedTimestamp) / 1000;
-                if (secondsSinceLastLog >= 2)
+        if (flags.logCps) {
+            function logCps() {
+                cpsLogData.push([
+                    (now - firstActionTimestamp) / 1000,
+                    cpsProd.latest(),
+                ]);
+                lastCpsLoggedTimestamp = now;
+            }
+    
+            if (actionPerformed && !firstActionTimestamp)
+                firstActionTimestamp = now;
+    
+            if (firstActionTimestamp && !cpsProdBuffed) {
+                if (lastCpsLoggedTimestamp) {
+                    var secondsSinceLastLog = (now - lastCpsLoggedTimestamp) / 1000;
+                    if (secondsSinceLastLog >= 2)
+                        logCps();
+                }
+                else
                     logCps();
             }
-            else
-                logCps();
         }
     }, 100);
 
@@ -741,9 +761,25 @@
         );
     });
 
-    addFlagToMenu('purchase', 'purchase top recommendation');
+    addFlagToMenu('purchase', 'purchase recommendations');
+
+    var $purchaseAlgoSelect = $('<select>')
+        .css('margin-left', '5px')
+        .change(function() {
+            options.purchaseAlgo = $(this).val();
+        });
+
+    $.each(purchaseAlgos, function( name, value ) {
+        $purchaseAlgoSelect.append(
+            `<option value="${value}"${value == options.purchaseAlgo ? ' selected' : ''}>${value}${value == options.purchaseAlgo ? ' (default)' : ''}</option>`
+        );
+    });
+    
+    $assist.append($purchaseAlgoSelect);
 
     $assist.append($eta);
+
+    addFlagToMenu('logCps', 'Log CpS');
 
     function downloadCsv (data, filename) {
 
@@ -768,33 +804,31 @@
         a.click()
     }
 
-    function downloadCpsLogCsv() {
-        var csv = [
-            'Seconds since first action',
-            'CpS (raw)'
-        ].join(',');
-
-        cpsLogData.forEach((item) => {
-            csv += `\n${item.join(',')}`
-        });
-
-        var bakeryName = (function() {
-            var text = $('#bakeryName').text();
-            var m = null;
-
-            if ((m = text.match(/(.*)'s bakery/)) != null) {
-                return `${m[1].replace(/[&/#,+()$~%.'":*?<>{} ]/g, '')}sBakery`;
-            }
-
-            return null;
-        })();
-
-        downloadCsv(csv, `cpsLog${ bakeryName ? '-' + bakeryName : '' }.csv`);
-    }
-
-    $assist.append($('<a href="#">CpS Log</a>')
-        .css('margin-left', '10px')
-        .click(downloadCpsLogCsv)
+    $assist.append($('<a href="#">[CSV]</a>')
+        .css('margin-left', '5px')
+        .click(function() {
+            var csv = [
+                'Seconds since first action',
+                'CpS (raw)'
+            ].join(',');
+    
+            cpsLogData.forEach((item) => {
+                csv += `\n${item.join(',')}`
+            });
+    
+            var bakeryName = (function() {
+                var text = $('#bakeryName').text();
+                var m = null;
+    
+                if ((m = text.match(/(.*)'s bakery/)) != null) {
+                    return `${m[1].replace(/[&/#,+()$~%.'":*?<>{} ]/g, '')}sBakery`;
+                }
+    
+                return null;
+            })();
+    
+            downloadCsv(csv, `cpsLog${ bakeryName ? '-' + bakeryName : '' }.csv`);
+        })
     );
 
     $('#topBar').children().css('display', 'none');
