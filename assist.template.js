@@ -4,11 +4,11 @@
     const shortVersion = '{{VERSION}}';
 
     const recommendAlgos = {
+        CpSPerPrice: 'CpS/P',
+        CpSPerPricePreferNewBuildings: 'CpS/P, PNB',
+        CpSPerPricePerTTE: 'CpS/P/TTE',
         Price: 'P',
         InversePrice: '1/P',
-        CpSPerPrice: 'CpS/P',
-        CpSPerPricePerTTE: 'CpS/P/TTE',
-        CpSPerPricePreferNewBuildings: 'CpS/P, PNB',
     };
 
     const purchaseAlgos = {
