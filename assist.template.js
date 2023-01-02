@@ -46,6 +46,25 @@
     // remove ads
     $('.supportComment').parent().empty();
 
+    // change styles
+    (function() {
+        // Create the <style> tag
+        var style = document.createElement("style");
+    
+        // Add a media (and/or media query) here if you'd like!
+        // style.setAttribute("media", "screen")
+        // style.setAttribute("media", "only screen and (max-width : 1024px)")
+    
+        // WebKit hack :(
+        style.appendChild(document.createTextNode(""));
+    
+        // Add the <style> element to the page
+        document.head.appendChild(style);
+    
+        // make wrinkled CpS easier to read
+        style.sheet.insertRule('.wrinkled { color: rgb(255, 153, 171) !important; background-color: rgb(204, 0, 0); }');
+    })();
+
     function exists($selector) {
         return $selector && $selector.length > 0;
     }
