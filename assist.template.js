@@ -6,6 +6,7 @@
     const recommendAlgos = {
         CpSPerPrice: 'CpS/P',
         CpSPerPricePreferNewBuildings: 'CpS/P, PNB',
+        CpSPerPricePreferNewBuildingsOverUpgrades: 'CpS/P, PNBOU',
         CpSPerPricePerTTE: 'CpS/P/TTE',
         Price: 'P',
         InversePrice: '1/P',
@@ -493,9 +494,17 @@
 
             unknownProducts.sort((a, b) => { return a.price - b.price; });
 
-            if (options.recommendAlgo == recommendAlgos.CpSPerPricePreferNewBuildings) {
-                recommended = unknownProducts.filter((product) => { return product.type == 'Building'; }).concat(recommended);
-                unknownProducts = unknownProducts.filter((product) => { return product.type != 'Building'; });
+            if (options.recommendAlgo == recommendAlgos.CpSPerPricePreferNewBuildings ||
+                options.recommendAlgo == recommendAlgos.CpSPerPricePreferNewBuildingsOverUpgrades) {
+                var newBuildings = unknownProducts.filter((product) => { return product.type == 'Building'; });
+                recommended = newBuildings.concat(recommended);
+
+                if (newBuildings.length > 0) {
+                    if (options.recommendAlgo == recommendAlgos.CpSPerPricePreferNewBuildings)
+                        unknownProducts = unknownProducts.filter((product) => { return product.type != 'Building'; });
+                    else
+                        unknownProducts = [];
+                }
             }
 
             // prefer an unknown product if it is cheaper
