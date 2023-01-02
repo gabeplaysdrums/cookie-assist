@@ -663,7 +663,11 @@
             log.debug('computing action');
 
             if (flags.goldenCookie) {
-                var $shimmer = $('.shimmer').first();
+                var $shimmer = $('.shimmer')
+                    // ignore wrath cookies
+                    .filter(function() { return $(this).css('background').indexOf('wrath') < 0; })
+                    // select first result
+                    .first();
 
                 if (exists($shimmer))
                 {
