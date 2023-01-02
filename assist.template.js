@@ -644,7 +644,7 @@
         var now = new Date();
         iterCount++;
 
-        var cpsProdBuffed = exists($('.crate.enabled.buff'));
+        var cpsProdAltered = exists($('.crate.enabled.buff')) || $('#cookiesPerSecond').hasClass('wrinkled');
 
         // get production CpS
         cpsProd.addSample((function() {
@@ -728,7 +728,7 @@
             if (actionPerformed && !firstActionTimestamp)
                 firstActionTimestamp = now;
     
-            if (firstActionTimestamp && !cpsProdBuffed) {
+            if (firstActionTimestamp && !cpsProdAltered) {
                 if (lastCpsLoggedTimestamp) {
                     var secondsSinceLastLog = (now - lastCpsLoggedTimestamp) / 1000;
                     if (secondsSinceLastLog >= 2)
