@@ -644,7 +644,7 @@
         var now = new Date();
         iterCount++;
 
-        var cpsProdBuffed = exists($('.crate.enabled.buff'));
+        var cpsProdAltered = exists($('.crate.enabled.buff')) || $('#cookiesPerSecond').hasClass('wrinkled');
 
         // get production CpS
         cpsProd.addSample((function() {
@@ -663,7 +663,11 @@
             log.debug('computing action');
 
             if (flags.goldenCookie) {
-                var $shimmer = $('.shimmer').first();
+                var $shimmer = $('.shimmer')
+                    // ignore wrath cookies
+                    .filter(function() { return $(this).css('background').indexOf('wrath') < 0; })
+                    // select first result
+                    .first();
 
                 if (exists($shimmer))
                 {
@@ -724,7 +728,7 @@
             if (actionPerformed && !firstActionTimestamp)
                 firstActionTimestamp = now;
     
-            if (firstActionTimestamp && !cpsProdBuffed) {
+            if (firstActionTimestamp && !cpsProdAltered) {
                 if (lastCpsLoggedTimestamp) {
                     var secondsSinceLastLog = (now - lastCpsLoggedTimestamp) / 1000;
                     if (secondsSinceLastLog >= 2)
