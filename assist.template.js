@@ -223,8 +223,8 @@
         var ignoredProducts = [];
 
         function addProduct(product) {
-            // avoid buildings that have a warning
-            if (product.warning) {
+            // avoid switches and warnings
+            if (product.warning || product.type == 'Switch') {
                 ignoredProducts.push(product);
                 return;
             }
@@ -708,10 +708,15 @@
         })();
 
         if (flags.logCps) {
-            function logCps() {
+            function maybeLogCurrentCps() {
+                var cps = cpsProd.latest();
+
+                if (cpsLogData.length > 0 && Math.abs(cpsLogData[cpsLogData.length - 1][1] - cps) < 0.9)
+                    return;
+
                 cpsLogData.push([
                     (now - firstActionTimestamp) / 1000,
-                    cpsProd.latest(),
+                    cps,
                 ]);
                 lastCpsLoggedTimestamp = now;
             }
@@ -723,10 +728,10 @@
                 if (lastCpsLoggedTimestamp) {
                     var secondsSinceLastLog = (now - lastCpsLoggedTimestamp) / 1000;
                     if (secondsSinceLastLog >= 2)
-                        logCps();
+                        maybeLogCurrentCps();
                 }
                 else
-                    logCps();
+                    maybeLogCurrentCps();
             }
         }
     }, 100);
