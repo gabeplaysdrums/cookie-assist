@@ -8,6 +8,7 @@
         InversePrice: '1/P',
         CpSPerPrice: 'CpS/P',
         CpSPerPricePerTTE: 'CpS/P/TTE',
+        CpSPerPricePreferNewBuildings: 'CpS/P, PNB',
     };
 
     const purchaseAlgos = {
@@ -468,11 +469,15 @@
             else
                 knownProducts.sort((a, b) => { return b.cpsEachPerPrice - a.cpsEachPerPrice; });
 
-            unknownProducts.sort((a, b) => { return a.price - b.price; });
-            ignoredProducts.sort((a, b) => { return a.price - b.price; });
-
             // recommend the products with the highest CpS per price
             recommended = knownProducts.slice();
+
+            unknownProducts.sort((a, b) => { return a.price - b.price; });
+
+            if (options.recommendAlgo == recommendAlgos.CpSPerPricePreferNewBuildings) {
+                recommended = unknownProducts.filter((product) => { return product.type == 'Building'; }).concat(recommended);
+                unknownProducts = unknownProducts.filter((product) => { return product.type != 'Building'; });
+            }
 
             // prefer an unknown product if it is cheaper
             if (unknownProducts.length > 0 && 
