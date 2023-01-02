@@ -223,8 +223,8 @@
         var ignoredProducts = [];
 
         function addProduct(product) {
-            // avoid buildings that have a warning
-            if (product.warning) {
+            // avoid switches and warnings
+            if (product.warning || product.type == 'Switch') {
                 ignoredProducts.push(product);
                 return;
             }
