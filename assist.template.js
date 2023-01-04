@@ -23,6 +23,7 @@
         recommendCount: 5,
         recommendAlgo: recommendAlgos.CpSPerPrice,
         purchaseAlgo: purchaseAlgos.Top,
+        maxWrinklerCount: 9,
     };
 
     const log = (function(){
@@ -737,6 +738,17 @@
                 }
             }
 
+            if (flags.popWrinkler) {
+                var activeWrinklers = Game.wrinklers.filter((wrinkler) => { return wrinkler.close == 1; });
+
+                if (activeWrinklers.length > options.maxWrinklerCount) {
+                    //var oldestWrinkler = activeWrinklers.sort((a, b) => { return b.sucked - a.sucked; })[0];
+                    log.info('popping random wrinkler');
+                    Game.PopRandomWrinkler();
+                    return true;
+                }
+            }
+
             if (flags.recommend || flags.purchase) {
                 if (iterCount % 20 == 0) {
                     var recommended = updateRecommendation(flags.recommend);
@@ -842,7 +854,7 @@
 
     $.each(recommendAlgos, function( name, value ) {
         $recommendAlgoSelect.append(
-            `<option value="${value}"${value == options.recommendAlgo ? ' selected' : ''}>${value}${value == options.recommendAlgo ? ' (default)' : ''}</option>`
+            $(`<option value="${value}"${value == options.recommendAlgo ? ' selected' : ''}>${value}${value == options.recommendAlgo ? ' (default)' : ''}</option>`)
         );
     });
 
@@ -858,13 +870,68 @@
 
     $.each(purchaseAlgos, function( name, value ) {
         $purchaseAlgoSelect.append(
-            `<option value="${value}"${value == options.purchaseAlgo ? ' selected' : ''}>${value}${value == options.purchaseAlgo ? ' (default)' : ''}</option>`
+            $(`<option value="${value}"${value == options.purchaseAlgo ? ' selected' : ''}>${value}${value == options.purchaseAlgo ? ' (default)' : ''}</option>`)
         );
     });
     
     $settingsMenu.append($purchaseAlgoSelect);
 
     $mainMenu.append($eta);
+
+    $assist.append($mainMenu);
+
+    function toggleMenu($thisMenu, $thisMenuToggle, otherMenuToggles = []) {
+        var isMenuVisible = $thisMenu.css('display') != 'none';
+
+        $thisMenuToggle.css('display', '');
+        $thisMenu.css('display', isMenuVisible ? 'none' : '');
+        $mainMenu.css('display', isMenuVisible ? '' : 'none');
+
+        otherMenuToggles.forEach(($toggle) => {
+            $toggle.css('display', isMenuVisible ? '' : 'none');
+        });
+    }
+
+    var $grandmaMenuToggle = $('<a href="javascript:void()">👵🏻</a>')
+        .attr('title', 'Grandmapocalypse')
+        .css('text-decoration', 'none')
+        .css('margin-left', '15px')
+        .click(function() {
+            toggleMenu($grandmaMenu, $grandmaMenuToggle, [ $settingsMenuToggle ]);
+        });
+
+    $assist.append($grandmaMenuToggle);
+
+    addFlagToMenu('wrathCookie', 'click wrath cookies', $grandmaMenu);
+    addFlagToMenu('popWrinkler', 'pop wrinklers', $grandmaMenu);
+
+    $settingsMenu.append($('<span>wrinklers:</span>').css('margin-left', '10px'));
+
+    var $maxWrinklerSelect = $('<select>')
+        .css('margin-left', '5px')
+        .change(function() {
+            options.maxWrinklerCount = parseInt($(this).val());
+        });
+    
+    $settingsMenu.append($maxWrinklerSelect);
+
+    for (var i=0; i <= 12; i++) {
+        $maxWrinklerSelect.append(
+            $(`<option value="${i}"${i == options.maxWrinklerCount ? ' selected' : ''}>${i}${i == options.maxWrinklerCount ? ' (default)' : ''}</option>`)
+        );
+    }
+
+    $assist.append($grandmaMenu);
+
+    var $settingsMenuToggle = $('<a href="javascript:void()">⚙️</a>')
+        .attr('title', 'Settings')
+        .css('text-decoration', 'none')
+        .css('margin-left', '15px')
+        .click(function() {
+            toggleMenu($settingsMenu, $settingsMenuToggle, [ $grandmaMenuToggle ]);
+        });
+    
+    $assist.append($settingsMenuToggle);
 
     addFlagToMenu('logCps', 'Log CpS', $settingsMenu);
 
@@ -918,43 +985,6 @@
         })
     );
 
-    $assist.append($mainMenu);
-
-    function toggleMenu($thisMenu, $thisMenuToggle, otherMenuToggles = []) {
-        var isMenuVisible = $thisMenu.css('display') != 'none';
-
-        $thisMenuToggle.css('display', '');
-        $thisMenu.css('display', isMenuVisible ? 'none' : '');
-        $mainMenu.css('display', isMenuVisible ? '' : 'none');
-
-        otherMenuToggles.forEach(($toggle) => {
-            $toggle.css('display', isMenuVisible ? '' : 'none');
-        });
-    }
-
-    var $grandmaMenuToggle = $('<a href="javascript:void()">👵🏻</a>')
-        .attr('title', 'Grandmapocalypse')
-        .css('text-decoration', 'none')
-        .css('margin-left', '15px')
-        .click(function() {
-            toggleMenu($grandmaMenu, $grandmaMenuToggle, [ $settingsMenuToggle ]);
-        });
-
-    $assist.append($grandmaMenuToggle);
-
-    addFlagToMenu('wrathCookie', 'click wrath cookies', $grandmaMenu);
-
-    $assist.append($grandmaMenu);
-
-    var $settingsMenuToggle = $('<a href="javascript:void()">⚙️</a>')
-        .attr('title', 'Settings')
-        .css('text-decoration', 'none')
-        .css('margin-left', '15px')
-        .click(function() {
-            toggleMenu($settingsMenu, $settingsMenuToggle, [ $grandmaMenuToggle ]);
-        });
-    
-    $assist.append($settingsMenuToggle);
     $assist.append($settingsMenu);
 
     $('#topBar').children().css('display', 'none');
