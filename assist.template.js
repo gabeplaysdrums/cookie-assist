@@ -714,10 +714,18 @@
         var actionPerformed = (function() {
             log.debug('computing action');
 
-            if (flags.goldenCookie) {
+            if (flags.goldenCookie || flags.wrathCookie) {
                 var $shimmer = $('.shimmer')
                     // ignore wrath cookies
-                    .filter(function() { return $(this).css('background').indexOf('wrath') < 0; })
+                    .filter(function() {
+                        var isWrathCookie = $(this).css('background').indexOf('wrath') >= 0;
+                        if (flags.wrathCookie && flags.goldenCookie)
+                            return true;
+                        else if (flags.wrathCookie) // only wrath cookies
+                            return isWrathCookie;
+                        else // only golden cookies
+                            return !isWrathCookie;
+                    })
                     // select first result
                     .first();
 
