@@ -7,6 +7,8 @@
         CpSPerPrice: 'CpS/P',
         CpSPerPricePreferNewBuildings: 'CpS/P, PNB',
         CpSPerPricePreferNewBuildingsOverUpgrades: 'CpS/P, PNBOU',
+        CpSPerPricePreferNewUpgrades: 'CpS/P, PNU',
+        CpSPerPricePreferNewUpgradesOverBuildings: 'CpS/P, PNUOB',
         CpSPerPricePerTTE: 'CpS/P/TTE',
         Price: 'P',
         InversePrice: '1/P',
@@ -495,14 +497,25 @@
             unknownProducts.sort((a, b) => { return a.price - b.price; });
 
             if (options.recommendAlgo == recommendAlgos.CpSPerPricePreferNewBuildings ||
-                options.recommendAlgo == recommendAlgos.CpSPerPricePreferNewBuildingsOverUpgrades) {
-                var newBuildings = unknownProducts.filter((product) => { return product.type == 'Building'; });
-                recommended = newBuildings.concat(recommended);
+                options.recommendAlgo == recommendAlgos.CpSPerPricePreferNewBuildingsOverUpgrades ||
+                options.recommendAlgo == recommendAlgos.CpSPerPricePreferNewUpgrades ||
+                options.recommendAlgo == recommendAlgos.CpSPerPricePreferNewUpgradesOverBuildings) {
+                var newProductFilter = null;
 
-                if (newBuildings.length > 0) {
-                    if (options.recommendAlgo == recommendAlgos.CpSPerPricePreferNewBuildings)
-                        unknownProducts = unknownProducts.filter((product) => { return product.type != 'Building'; });
-                    else
+                if (options.recommendAlgo == recommendAlgos.CpSPerPricePreferNewBuildings || 
+                    options.recommendAlgo == recommendAlgos.CpSPerPricePreferNewBuildings)
+                    newProductFilter = (product) => { return product.type == 'Building'; };
+                else
+                    newProductFilter = (product) => { return product.type != 'Building'; };
+
+                var newProducts = unknownProducts.filter(newProductFilter);
+                recommended = newProducts.concat(recommended);
+
+                if (newProducts.length > 0) {
+                    if (options.recommendAlgo == recommendAlgos.CpSPerPricePreferNewBuildings || 
+                        options.recommendAlgo == recommendAlgos.CpSPerPricePreferNewUpgrades)
+                        unknownProducts = unknownProducts.filter((product) => { return !newProductFilter(product); });
+                    else // CpSPerPricePreferNewBuildingsOverUpgrades or CpSPerPricePreferNewUpgradesOverBuildings
                         unknownProducts = [];
                 }
             }
