@@ -136,6 +136,9 @@
         .css('color', '#fff')
         .append($(`<b title="version ${version}">Cookie Assistant v${shortVersion}:</b> `));
 
+    var $mainMenu = $('<span>');
+    $mainMenu.append($mainMenu);
+
     var $eta = $('<span>')
         .css('margin-left', '10px');
 
@@ -786,8 +789,8 @@
         }
     }, 100);
 
-    function addFlagToMenu(name, label) {
-        $assist.append(
+    function addFlagToMenu(name, label, $menu = $mainMenu) {
+        $menu.append(
             $(`<input type="checkbox" id="cookie-assist-flag-${name}">`)
                 .css('margin-left', '10px')
                 .change(function() {
@@ -796,7 +799,7 @@
                 })
         );
     
-        $assist.append(
+        $menu.append(
             $(`<label for="cookie-assist-flag-${name}">${label}</label>`)
         );
     }
@@ -805,7 +808,7 @@
     addFlagToMenu('goldenCookie', 'click golden cookies');
     addFlagToMenu('recommend', 'show recommendations');
 
-    $assist.append($('<select>')
+    $mainMenu.append($('<select>')
         .append('<option>5</option>')
         .append('<option>10</option>')
         .append('<option>25</option>')
@@ -822,7 +825,7 @@
             options.recommendAlgo = $(this).val();
         });
     
-    $assist.append($recommendAlgoSelect);
+    $mainMenu.append($recommendAlgoSelect);
 
     $.each(recommendAlgos, function( name, value ) {
         $recommendAlgoSelect.append(
@@ -834,6 +837,7 @@
 
     var $purchaseAlgoSelect = $('<select>')
         .css('margin-left', '5px')
+        .css('margin-right', '0')
         .change(function() {
             options.purchaseAlgo = $(this).val();
         });
@@ -844,9 +848,9 @@
         );
     });
     
-    $assist.append($purchaseAlgoSelect);
+    $mainMenu.append($purchaseAlgoSelect);
 
-    $assist.append($eta);
+    $mainMenu.append($eta);
 
     addFlagToMenu('logCps', 'Log CpS');
 
@@ -873,7 +877,7 @@
         a.click()
     }
 
-    $assist.append($('<a href="#">[CSV]</a>')
+    $mainMenu.append($('<a href="#">[CSV]</a>')
         .css('margin-left', '5px')
         .click(function() {
             var csv = [
@@ -899,6 +903,26 @@
             downloadCsv(csv, `cpsLog${ bakeryName ? '-' + bakeryName : '' }.csv`);
         })
     );
+
+    $assist.append($mainMenu);
+
+    $grandmaMenu = $('<span>')
+        .css('display', 'none');
+
+    $assist.append(
+        $('<a href="javascript:void()">👵🏻</a>')
+            .css('text-decoration', 'none')
+            .css('margin-left', '15px')
+            .click(function() {
+                var grandmaMenuVisible = $grandmaMenu.css('display') != 'none';
+                $mainMenu.css('display', grandmaMenuVisible ? '' : 'none');
+                $grandmaMenu.css('display', grandmaMenuVisible ? 'none' : '');
+            })
+    );
+
+    addFlagToMenu('wrathCookie', 'click wrath cookies', $grandmaMenu);
+
+    $assist.append($grandmaMenu);
 
     $('#topBar').children().css('display', 'none');
     $("#topBar").append($assist);
