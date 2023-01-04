@@ -136,6 +136,12 @@
         .css('color', '#fff')
         .append($(`<b title="version ${version}">Cookie Assistant v${shortVersion}:</b> `));
 
+    var $mainMenu = $('<span>');
+    var $grandmaMenu = $('<span>')
+        .css('display', 'none');
+    var $settingsMenu = $('<span>')
+        .css('display', 'none');
+
     var $eta = $('<span>')
         .css('margin-left', '10px');
 
@@ -708,10 +714,18 @@
         var actionPerformed = (function() {
             log.debug('computing action');
 
-            if (flags.goldenCookie) {
+            if (flags.goldenCookie || flags.wrathCookie) {
                 var $shimmer = $('.shimmer')
                     // ignore wrath cookies
-                    .filter(function() { return $(this).css('background').indexOf('wrath') < 0; })
+                    .filter(function() {
+                        var isWrathCookie = $(this).css('background').indexOf('wrath') >= 0;
+                        if (flags.wrathCookie && flags.goldenCookie)
+                            return true;
+                        else if (flags.wrathCookie) // only wrath cookies
+                            return isWrathCookie;
+                        else // only golden cookies
+                            return !isWrathCookie;
+                    })
                     // select first result
                     .first();
 
@@ -786,8 +800,8 @@
         }
     }, 100);
 
-    function addFlagToMenu(name, label) {
-        $assist.append(
+    function addFlagToMenu(name, label, $menu = $mainMenu) {
+        $menu.append(
             $(`<input type="checkbox" id="cookie-assist-flag-${name}">`)
                 .css('margin-left', '10px')
                 .change(function() {
@@ -796,7 +810,7 @@
                 })
         );
     
-        $assist.append(
+        $menu.append(
             $(`<label for="cookie-assist-flag-${name}">${label}</label>`)
         );
     }
@@ -805,7 +819,9 @@
     addFlagToMenu('goldenCookie', 'click golden cookies');
     addFlagToMenu('recommend', 'show recommendations');
 
-    $assist.append($('<select>')
+    $settingsMenu.append($('<span>recommend:</span>').css('margin-left', '10px'));
+
+    $settingsMenu.append($('<select>')
         .append('<option>5</option>')
         .append('<option>10</option>')
         .append('<option>25</option>')
@@ -822,7 +838,7 @@
             options.recommendAlgo = $(this).val();
         });
     
-    $assist.append($recommendAlgoSelect);
+    $settingsMenu.append($recommendAlgoSelect);
 
     $.each(recommendAlgos, function( name, value ) {
         $recommendAlgoSelect.append(
@@ -831,6 +847,8 @@
     });
 
     addFlagToMenu('purchase', 'purchase recommendations');
+
+    $settingsMenu.append($('<span>purchase:</span>').css('margin-left', '10px'));
 
     var $purchaseAlgoSelect = $('<select>')
         .css('margin-left', '5px')
@@ -844,11 +862,11 @@
         );
     });
     
-    $assist.append($purchaseAlgoSelect);
+    $settingsMenu.append($purchaseAlgoSelect);
 
-    $assist.append($eta);
+    $mainMenu.append($eta);
 
-    addFlagToMenu('logCps', 'Log CpS');
+    addFlagToMenu('logCps', 'Log CpS', $settingsMenu);
 
     function downloadCsv (data, filename) {
 
@@ -873,7 +891,7 @@
         a.click()
     }
 
-    $assist.append($('<a href="#">[CSV]</a>')
+    $settingsMenu.append($('<a href="#">[CSV]</a>')
         .css('margin-left', '5px')
         .click(function() {
             var csv = [
@@ -899,6 +917,45 @@
             downloadCsv(csv, `cpsLog${ bakeryName ? '-' + bakeryName : '' }.csv`);
         })
     );
+
+    $assist.append($mainMenu);
+
+    function toggleMenu($thisMenu, $thisMenuToggle, otherMenuToggles = []) {
+        var isMenuVisible = $thisMenu.css('display') != 'none';
+
+        $thisMenuToggle.css('display', '');
+        $thisMenu.css('display', isMenuVisible ? 'none' : '');
+        $mainMenu.css('display', isMenuVisible ? '' : 'none');
+
+        otherMenuToggles.forEach(($toggle) => {
+            $toggle.css('display', isMenuVisible ? '' : 'none');
+        });
+    }
+
+    var $grandmaMenuToggle = $('<a href="javascript:void()">👵🏻</a>')
+        .attr('title', 'Grandmapocalypse')
+        .css('text-decoration', 'none')
+        .css('margin-left', '15px')
+        .click(function() {
+            toggleMenu($grandmaMenu, $grandmaMenuToggle, [ $settingsMenuToggle ]);
+        });
+
+    $assist.append($grandmaMenuToggle);
+
+    addFlagToMenu('wrathCookie', 'click wrath cookies', $grandmaMenu);
+
+    $assist.append($grandmaMenu);
+
+    var $settingsMenuToggle = $('<a href="javascript:void()">⚙️</a>')
+        .attr('title', 'Settings')
+        .css('text-decoration', 'none')
+        .css('margin-left', '15px')
+        .click(function() {
+            toggleMenu($settingsMenu, $settingsMenuToggle, [ $grandmaMenuToggle ]);
+        });
+    
+    $assist.append($settingsMenuToggle);
+    $assist.append($settingsMenu);
 
     $('#topBar').children().css('display', 'none');
     $("#topBar").append($assist);
