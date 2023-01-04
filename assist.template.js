@@ -137,7 +137,10 @@
         .append($(`<b title="version ${version}">Cookie Assistant v${shortVersion}:</b> `));
 
     var $mainMenu = $('<span>');
-    $mainMenu.append($mainMenu);
+    var $grandmaMenu = $('<span>')
+        .css('display', 'none');
+    var $settingsMenu = $('<span>')
+        .css('display', 'none');
 
     var $eta = $('<span>')
         .css('margin-left', '10px');
@@ -808,7 +811,9 @@
     addFlagToMenu('goldenCookie', 'click golden cookies');
     addFlagToMenu('recommend', 'show recommendations');
 
-    $mainMenu.append($('<select>')
+    $settingsMenu.append($('<span>recommend:</span>').css('margin-left', '10px'));
+
+    $settingsMenu.append($('<select>')
         .append('<option>5</option>')
         .append('<option>10</option>')
         .append('<option>25</option>')
@@ -825,7 +830,7 @@
             options.recommendAlgo = $(this).val();
         });
     
-    $mainMenu.append($recommendAlgoSelect);
+    $settingsMenu.append($recommendAlgoSelect);
 
     $.each(recommendAlgos, function( name, value ) {
         $recommendAlgoSelect.append(
@@ -835,9 +840,10 @@
 
     addFlagToMenu('purchase', 'purchase recommendations');
 
+    $settingsMenu.append($('<span>purchase:</span>').css('margin-left', '10px'));
+
     var $purchaseAlgoSelect = $('<select>')
         .css('margin-left', '5px')
-        .css('margin-right', '0')
         .change(function() {
             options.purchaseAlgo = $(this).val();
         });
@@ -848,11 +854,11 @@
         );
     });
     
-    $mainMenu.append($purchaseAlgoSelect);
+    $settingsMenu.append($purchaseAlgoSelect);
 
     $mainMenu.append($eta);
 
-    addFlagToMenu('logCps', 'Log CpS');
+    addFlagToMenu('logCps', 'Log CpS', $settingsMenu);
 
     function downloadCsv (data, filename) {
 
@@ -877,7 +883,7 @@
         a.click()
     }
 
-    $mainMenu.append($('<a href="#">[CSV]</a>')
+    $settingsMenu.append($('<a href="#">[CSV]</a>')
         .css('margin-left', '5px')
         .click(function() {
             var csv = [
@@ -906,23 +912,42 @@
 
     $assist.append($mainMenu);
 
-    $grandmaMenu = $('<span>')
-        .css('display', 'none');
+    function toggleMenu($thisMenu, $thisMenuToggle, otherMenuToggles = []) {
+        var isMenuVisible = $thisMenu.css('display') != 'none';
 
-    $assist.append(
-        $('<a href="javascript:void()">👵🏻</a>')
-            .css('text-decoration', 'none')
-            .css('margin-left', '15px')
-            .click(function() {
-                var grandmaMenuVisible = $grandmaMenu.css('display') != 'none';
-                $mainMenu.css('display', grandmaMenuVisible ? '' : 'none');
-                $grandmaMenu.css('display', grandmaMenuVisible ? 'none' : '');
-            })
-    );
+        $thisMenuToggle.css('display', '');
+        $thisMenu.css('display', isMenuVisible ? 'none' : '');
+        $mainMenu.css('display', isMenuVisible ? '' : 'none');
+
+        otherMenuToggles.forEach(($toggle) => {
+            $toggle.css('display', isMenuVisible ? '' : 'none');
+        });
+    }
+
+    var $grandmaMenuToggle = $('<a href="javascript:void()">👵🏻</a>')
+        .attr('title', 'Grandmapocalypse')
+        .css('text-decoration', 'none')
+        .css('margin-left', '15px')
+        .click(function() {
+            toggleMenu($grandmaMenu, $grandmaMenuToggle, [ $settingsMenuToggle ]);
+        });
+
+    $assist.append($grandmaMenuToggle);
 
     addFlagToMenu('wrathCookie', 'click wrath cookies', $grandmaMenu);
 
     $assist.append($grandmaMenu);
+
+    var $settingsMenuToggle = $('<a href="javascript:void()">⚙️</a>')
+        .attr('title', 'Settings')
+        .css('text-decoration', 'none')
+        .css('margin-left', '15px')
+        .click(function() {
+            toggleMenu($settingsMenu, $settingsMenuToggle, [ $grandmaMenuToggle ]);
+        });
+    
+    $assist.append($settingsMenuToggle);
+    $assist.append($settingsMenu);
 
     $('#topBar').children().css('display', 'none');
     $("#topBar").append($assist);
