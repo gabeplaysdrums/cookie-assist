@@ -165,18 +165,36 @@
         var samples = new Array(5000);
         var sum = 0;
         var latest = NaN;
+        var latestRaw = NaN;
+        var latestIsBuffed = false;
+        var latestIsWrinkled = false;
 
         return {
+            raw: function() {
+                return latestRaw;
+            },
+            isBuffed: function() {
+                return latestIsBuffed;
+            },
+            isWrinkled: function() {
+                return latestIsWrinkled;
+            },
+            unwrinkled: function() {
+                return latestIsWrinkled ? latestRaw : latest;
+            },
             latest: function() {
                 return latest;
             },
-            addSample: function(val) {
-                latest = val;
-                if (val == null)
+            addSample: function(current, raw, isBuffed, isWrinkled) {
+                latest = current;
+                latestRaw = raw;
+                latestIsBuffed = isBuffed;
+                latestIsWrinkled = isWrinkled;
+                if (current == null)
                     return;
-                sum += val;
+                sum += current;
                 var expireVal = samples[count % samples.length];
-                samples[count % samples.length] = val;
+                samples[count % samples.length] = current;
                 count++;
                 if (count > samples.length)
                     sum -= expireVal;
@@ -396,7 +414,7 @@
                     (m = text.match(/Cookie production multiplier \+(\d+(\.\d+)?)%\./)) != null)
                 {
                     product.addedProdMult = parseFloat(m[1]) / 100;
-                    product.cpsEach = cpsProd.latest() * product.addedProdMult;
+                    product.cpsEach = cpsProd.unwrinkled() * product.addedProdMult;
                 }
 
                 if (product.type == 'Upgrade' &&
@@ -454,7 +472,7 @@
                     (m = text.match(/Clicking gains \+(\d+(\.\d+)?)% of your CpS/)) != null)
                 {
                     product.addedProdMult = parseFloat(m[1]) / 100;
-                    product.cpsEach = cpsProd.latest() * product.addedProdMult * averageMouseClicksPerSecond;
+                    product.cpsEach = cpsProd.unwrinkled() * product.addedProdMult * averageMouseClicksPerSecond;
                 }
             });
             
@@ -504,8 +522,8 @@
         else {
             if (options.recommendAlgo == recommendAlgos.CpSPerPricePerTTE)
                 knownProducts.sort((a, b) => {
-                    var aTTE = a.price / cpsProd.latest();
-                    var bTTE = b.price / cpsProd.latest();
+                    var aTTE = a.price / cpsProd.unwrinkled();
+                    var bTTE = b.price / cpsProd.unwrinkled();
                     return b.cpsEachPerPrice / bTTE - a.cpsEachPerPrice / aTTE;
                 });
             else
@@ -710,18 +728,20 @@
         var now = new Date();
         iterCount++;
 
-        var cpsProdAltered = exists($('.crate.enabled.buff')) || $('#cookiesPerSecond').hasClass('wrinkled');
-
         // get production CpS
-        cpsProd.addSample((function() {
-            var text = $('#cookiesPerSecond').text();
-            var m = null;
+        cpsProd.addSample(
+            (function() {
+                var text = $('#cookiesPerSecond').text();
+                var m = null;
 
-            if ((m = text.match(/per second: (.*)/)) != null)
-            {
-                return parseShortNumber(m[1]);
-            }
-        })());
+                if ((m = text.match(/per second: (.*)/)) != null)
+                {
+                    return parseShortNumber(m[1]);
+                }
+            })(), 
+            Game.cookiesPsRaw, 
+            exists($('.crate.enabled.buff')),
+            $('#cookiesPerSecond').hasClass('wrinkled'));
 
         log.debug(`Production CpS: latest=${cpsProd.latest()}, moving average=${cpsProd.movingAverage()}`);
 
@@ -798,7 +818,7 @@
 
         if (flags.logCps) {
             function maybeLogCurrentCps() {
-                var cps = cpsProd.latest();
+                var cps = cpsProd.raw();
 
                 if (cpsLogData.length > 0 && Math.abs(cpsLogData[cpsLogData.length - 1][1] - cps) < 0.9)
                     return;
@@ -813,7 +833,7 @@
             if (actionPerformed && !firstActionTimestamp)
                 firstActionTimestamp = now;
     
-            if (firstActionTimestamp && !cpsProdAltered) {
+            if (firstActionTimestamp) {
                 if (lastCpsLoggedTimestamp) {
                     var secondsSinceLastLog = (now - lastCpsLoggedTimestamp) / 1000;
                     if (secondsSinceLastLog >= 2)
@@ -905,7 +925,7 @@
         });
     }
 
-    var $grandmaMenuToggle = $('<a href="javascript:void()">👵🏻</a>')
+    var $grandmaMenuToggle = $('<a href="#">👵🏻</a>')
         .attr('title', 'Grandmapocalypse')
         .css('text-decoration', 'none')
         .css('margin-left', '15px')
@@ -936,7 +956,7 @@
 
     $assist.append($grandmaMenu);
 
-    var $settingsMenuToggle = $('<a href="javascript:void()">⚙️</a>')
+    var $settingsMenuToggle = $('<a href="#">⚙️</a>')
         .attr('title', 'Settings')
         .css('text-decoration', 'none')
         .css('margin-left', '15px')
