@@ -3,6 +3,8 @@
     const version = '{{FULL_VERSION}}';
     const shortVersion = '{{VERSION}}';
 
+    var flags = {};
+
     const recommendAlgos = {
         CpSPerPrice: 'CpS/P',
         CpSPerPricePreferNewBuildings: 'CpS/P, PNB',
@@ -34,7 +36,7 @@
         }
 
         return {
-            debug: makeLogFunction(console.debug),
+            debug: makeLogFunction((msg) => { if (flags.debugLogs) console.debug(msg); }),
             info: makeLogFunction(console.log),
             error: makeLogFunction(console.error),
             warn: makeLogFunction(console.warn),
@@ -677,8 +679,6 @@
         return recommended;
     }
 
-    var flags = {};
-
     $('.product,.upgrade').not('.noFrame').click(function() {
         if (flags.recommend || flags.purchase) {
             updateRecommendation(flags.recommend);
@@ -1017,6 +1017,8 @@
             downloadCsv(csv, `cpsLog${ bakeryName ? '-' + bakeryName : '' }.csv`);
         })
     );
+
+    addFlagToMenu('debugLogs', 'Debug Logs', $settingsMenu);
 
     $assist.append($settingsMenu);
 
