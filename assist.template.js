@@ -292,7 +292,7 @@
                 return;
             }
 
-            if (product.cpsEach && product.price) {
+            if (product.cpsEach >= 0 && product.price) {
                 product.cpsEachPerPrice = product.cpsEach / product.price;
                 knownProducts.push(product);
                 return;
@@ -482,7 +482,7 @@
         });
 
         // calculate grandma boosts
-        if (grandmas && grandmas.owned > 0 && grandmas.price && grandmas.cpsEach && grandmas.buildingBoostPcts) {
+        if (grandmas && grandmas.owned > 0 && grandmas.price && grandmas.cpsEach >= 0 && grandmas.buildingBoostPcts) {
             for (var pluralBuilding in grandmas.buildingBoostPcts) {
                 var building = pluralBuildings[pluralBuilding];
                 if (!building || !building.cpsTotal)
@@ -1034,6 +1034,7 @@
         flags: flags,
         options: options,
         recommendAlgos: recommendAlgos,
+        purchaseAlgos: purchaseAlgos,
     });
 
 })(jQuery);
